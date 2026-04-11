@@ -40,22 +40,23 @@
     switch (evt.keyCode) {
       case 37: // <
         evt.preventDefault();
-        if (cursor.axis === "down") face("across");
+        // TODO: holding shift
+        if (cursor.axis === "down" && !evt.shiftKey) face("across");
         else moveLeft();
         break;
       case 38: // ^
         evt.preventDefault();
-        if (cursor.axis === "across") face("down");
+        if (cursor.axis === "across" && !evt.shiftKey) face("down");
         else moveUp();
         break;
       case 39: // >
         evt.preventDefault();
-        if (cursor.axis === "down") face("across");
+        if (cursor.axis === "down" && !evt.shiftKey) face("across");
         else moveRight();
         break;
       case 40: // v
         evt.preventDefault();
-        if (cursor.axis === "across") face("down");
+        if (cursor.axis === "across" && !evt.shiftKey) face("down");
         else moveDown();
         break;
       case 8: // bksp
@@ -70,6 +71,15 @@
         }
         const fill = grid[idx].fill.slice(0, -1);
         performAction("Delete cell contents", [{idx, is: {fill}}]);
+        break;
+      case 9: // tab
+        evt.preventDefault();
+        if (evt.shiftKey) {
+          // oof
+        } else {
+          nextWord();
+          advanceToUnfilled();
+        }
         break;
       default:
         // if (evt.ctrlKey || evt.metaKey) {
@@ -100,9 +110,12 @@
   const cellFilled = (idx) => grid[idx].fill.length >= cellFillLen;
 
   const advanceToUnfilled = () => {
-    // - go to the next non-full cell in the word,
-    // - go to the next word NUMERICALLY
-    // - loop
+    // go to the next non-full cell in the word,
+    // loop {
+    //   restart the word and try again
+    //   go to the next word NUMERICALLY
+    // }
+    // let pos = ({x, y} => ({x, y}))(cursor);
     let oops = 0;
     while (cellFilled(cursor.idx)) {
       oops++;
@@ -114,61 +127,10 @@
     }
   }
 
-  // TODO: would be nice if we could just update the global coordinate,
-  // and then translate that back into the Origin Utah.
-
-  const moveLeft = () => {
-    if (cursor.x > 0) {
-      // no loop
-      return setSelected({x: cursor.x - 1, y: cursor.y});
-    } else if (cursor.y < gridObj.tessellation.y) {
-      // loop into C
-      return setSelected({
-        x: gridObj.innerWidth-1,
-        y: gridObj.innerHeight + cursor.y,
-      });
-    } else {
-      // loop into B
-      return setSelected({
-        x: gridObj.width - 1,
-        y: cursor.y - gridObj.tessellation.y,
-      });
-    }
-  }
-
-  const moveUp = () => {
-    if (cursor.y > 0) {
-      return setSelected({x: cursor.x, y: cursor.y - 1});
-    } else if (cursor.x < gridObj.tessellation.x) {
-      // loop into B
-      return setSelected({
-        x: cursor.x + gridObj.innerWidth,
-        y: gridObj.innerHeight-1,
-      });
-    } else {
-      // loop into C
-      return setSelected({
-        x: cursor.x - gridObj.tessellation.x,
-        y: gridObj.height - 1,
-      });
-    }
-  }
-
-  const moveRight = () => {
-    if (cursor.x < width-1) {
-      return setSelected({x: cursor.x + 1, y: cursor.y});
-    } else {
-      return setSelected({x: 0, y: cursor.y + gridObj.tessellation.y});
-    }
-  }
-
-  const moveDown = () => {
-    if (cursor.y < height-1) {
-      return setSelected({x: cursor.x, y: cursor.y + 1});
-    } else {
-      return setSelected({x: cursor.x + gridObj.tessellation.x, y: 0});
-    }
-  }
+  const moveLeft = () => setSelected(gridObj.leftOf(cursor));
+  const moveUp = () => setSelected(gridObj.upOf(cursor));
+  const moveRight = () => setSelected(gridObj.rightOf(cursor));
+  const moveDown = () => setSelected(gridObj.downOf(cursor));
 
   const moveAhead = () => {
     if (cursor.axis === "across") return moveRight();
@@ -189,6 +151,11 @@
     cursor.line = gridObj.lineAt(cursor);
   }
 
+  const toggleFace = () => {
+    cursor.axis = cursor.axis === "across" ? "down" : "across";
+    cursor.line = gridObj.lineAt(cursor);
+  }
+
   // ===
 
   const performAction = (action, updates) => {
@@ -203,37 +170,18 @@
     redos = [];
   }
 
-  // Accepts {x, y} xor {idx}, and returns all three.
-  const normalizeCoordFmt = ({x, y, idx}) => {
-    const hasX = x != null;
-    const hasY = y != null;
-    const hasIdx = idx != null;
-    if (hasX && hasY && !hasIdx) {
-      return {x, y, idx: y * width + x};
-    }
-    if (!hasX && !hasY && hasIdx) {
-      // TODO: negatives
-      return {
-        x: idx % width,
-        y: Math.floor(idx / width),
-        idx,
-      }
-    }
-    throw new Error("expected {x, y} xor {idx}");
-  }
-
   const setSelected = (coord) => {
-    let { x, y, idx } = normalizeCoordFmt(coord);
-    // coord = normalizeCoordFmt(coord);
+    let { x, y, idx } = gridObj.normalizeCoordFmt(coord);
+    // coord = gridObj.normalizeCoordFmt(coord);
     // let { x, y, idx } = gridObj.normalizeTessellatedCoord(coord);
     if (idx < 0 || idx >= width * height) {
       console.warn({idx});
       return false;
     }
-    const redirect = grid[idx].redirect;
-    if (redirect != null) {
-      ({x, y, idx} = normalizeCoordFmt({ idx: redirect }));
-    }
+    // const redirect = grid[idx].redirect;
+    // if (redirect != null) {
+    //   ({x, y, idx} = gridObj.normalizeCoordFmt({ idx: redirect }));
+    // }
     if (grid[idx].wall) return false;
 
     cursor.x = x;
@@ -274,8 +222,9 @@
           class:selected={isSelected}
           class:wall={cell.wall}
           on:mousedown={evt => {
-            if (evt.buttons === 1) {
-              setSelected({idx});
+            if (evt.buttons === 0 || evt.buttons === 1) {
+              if (idx === cursor.idx) toggleFace();
+              else setSelected({idx});
             }
           }}
         >

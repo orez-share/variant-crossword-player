@@ -124,9 +124,10 @@ export default class Grid {
       const tesselY = height - y; // I think Odysseus visited tesselY
       for (let oy = 0; oy < y; oy++) {
         for (let ox = 0; ox < x; ox++) {
-          const redirect = oy * width + ox;
+          let redirect = oy * width + ox;
+          const reredirect = this.grid[redirect].redirect;
+          redirect = reredirect != null ? reredirect : redirect;
           const idx = (oy + tesselY) * width + (ox + tesselX);
-          this.grid[redirect].also = idx;
           this.grid[idx] = { redirect };
         }
       }
@@ -211,12 +212,121 @@ export default class Grid {
   //   return out
   // }
 
+
+  // Accepts {x, y} xor {idx}, and returns all three.
+  normalizeCoordFmt({x, y, idx}) {
+    const hasX = x != null;
+    const hasY = y != null;
+    const hasIdx = idx != null;
+    if (hasX && hasY && !hasIdx) {
+      return {x, y, idx: y * this.width + x};
+    }
+    if (!hasX && !hasY && hasIdx) {
+      // TODO: negatives
+      return {
+        x: idx % this.width,
+        y: Math.floor(idx / this.width),
+        idx,
+      }
+    }
+    throw new Error("expected {x, y} xor {idx}");
+  }
+
+  // TODO: would be nice if we could just update the global coordinate,
+  // and then translate that back into the Origin Utah.
+
+  leftOf({x, y}) {
+    if (x > 0) {
+      // no loop
+      return {x: x - 1, y};
+    } else if (y < this.tessellation.y) {
+      // loop into C
+      return {
+        x: this.innerWidth-1,
+        y: this.innerHeight + y,
+      };
+    } else {
+      // loop into B
+      return {
+        x: this.width - 1,
+        y: y - this.tessellation.y,
+      };
+    }
+  }
+
+  rightOf({x, y}) {
+    if (x == this.innerWidth-1 && y >= this.innerHeight) {
+      // loop from C
+      return {x: 0, y: y - this.innerHeight};
+    } else if (x < this.width-1) {
+      return {x: x + 1, y};
+    } else {
+      // loop from B
+      return {x: 0, y: y + this.tessellation.y};
+    }
+  }
+
+  upOf({x, y}) {
+    if (y > 0) {
+      return {x, y: y - 1};
+    } else if (x < this.tessellation.x) {
+      // loop into B
+      return {
+        x: x + this.innerWidth,
+        y: this.innerHeight-1,
+      };
+    } else {
+      // loop into C
+      return {
+        x: x - this.tessellation.x,
+        y: this.height - 1,
+      };
+    }
+  }
+
+  downOf({x, y}) {
+    if (y == this.innerHeight-1 && x >= this.innerWidth) {
+      // loop from B
+      return {x: x - this.innerWidth, y: 0};
+    } else if (y < this.height-1) {
+      return {x, y: y + 1};
+    } else {
+      // loop from C
+      return {x: x + this.tessellation.x, y: 0};
+    }
+  }
+
   lineAt({x, y, axis}) {
     const cells = new Set;
-    cells.add(0);
-    cells.add(1);
+    const forward = axis === "across" ? this.rightOf : this.downOf;
+    const backward = axis === "across" ? this.leftOf : this.upOf;
+    const init = { x, y, idx: y * this.width + x };
+
+    // &mut cells, &this
+    const collect = (init, walk) => {
+      let pos = init;
+      while (!this.grid[pos.idx].wall && !cells.has(pos.idx)) {
+        cells.add(pos.idx);
+        pos = walk(pos);
+        pos.idx = pos.y * this.width + pos.x;
+        // console.log(this.grid[pos.idx]);
+      }
+    }
+
+    collect(init, backward.bind(this));
+    cells.delete(init.idx);
+    collect(init, forward.bind(this));
+
     return { cells }
   }
+
+  // at(idx) {
+  //   // TODO: normalizeTessellatedCoord
+  //   console.assert(0 <= idx && idx < this.width * this.height, `out of bounds lookup: ${idx}`);
+  //   const cell = this.grid[idx];
+  //   if (cell.redirect == null) return cell;
+  //   return this.grid[cell.redirect];
+  // }
 
   clone() {
     const grid = [];
