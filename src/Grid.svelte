@@ -19,6 +19,9 @@
   const viewportWidth = gridObj.width + 1;
   const viewportHeight = gridObj.height + 1;
 
+  const gridCellContentPx = 32;
+  const gridCellBorderPx = gridCellContentPx + 1;
+
   let undos = [];
   let redos = [];
 
@@ -200,6 +203,43 @@
     if (drag) {
       scroll.x = evt.x - drag.x;
       scroll.y = evt.y - drag.y;
+      recenterScroll()
+    }
+  }
+
+  // this feels super jank but we'll seeee
+  const recenterScroll = () => {
+    if (scroll.x > 0) {
+      const w = gridCellBorderPx * gridObj.width;
+      const h = gridCellBorderPx * -gridObj.tessellation.y;
+      drag.x += w;
+      drag.y += h;
+      scroll.x -= w;
+      scroll.y -= h;
+    }
+    if (scroll.y > 0) {
+      const w = gridCellBorderPx * -gridObj.tessellation.x
+      const h = gridCellBorderPx * gridObj.height;
+      drag.x += w;
+      drag.y += h;
+      scroll.x -= w;
+      scroll.y -= h;
+    }
+    if (scroll.x < (renderWidth - viewportWidth) * -gridCellBorderPx) {
+      const w = gridCellBorderPx * -gridObj.width;
+      const h = gridCellBorderPx * gridObj.tessellation.y;
+      drag.x += w;
+      drag.y += h;
+      scroll.x -= w;
+      scroll.y -= h;
+    }
+    if (scroll.y < (renderHeight - viewportHeight) * -gridCellBorderPx) {
+      const w = gridCellBorderPx * gridObj.tessellation.x
+      const h = gridCellBorderPx * -gridObj.height;
+      drag.x += w;
+      drag.y += h;
+      scroll.x -= w;
+      scroll.y -= h;
     }
   }
 </script>
@@ -211,8 +251,8 @@
   on:mousedown={handleDragClick}
   on:mousemove={handleDragScroll}
   style="
-    width: calc((2em + 1px) * {viewportWidth} + 1px);
-    height: calc((2em + 1px) * {viewportHeight} + 1px);
+    width: {gridCellBorderPx * viewportWidth + 1}px;
+    height: {gridCellBorderPx * viewportHeight + 1}px;
   "
 >
   <div id="grid"
