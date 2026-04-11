@@ -18,13 +18,6 @@
   let undos = [];
   let redos = [];
 
-  // number each cell while we're debugging this wacky thing
-  let idx = 1;
-  for (const elem of gridObj.grid) {
-    elem.number = idx;
-    idx++;
-  }
-
   // TODO
   const hardcodedWalls = [
     6, 7, 11, 17, 18, 25, 26, 30, 35, 40, 41, 42, 59,
@@ -34,6 +27,7 @@
   for (const idx of hardcodedWalls) {
     gridObj.grid[idx].wall = true;
   }
+  gridObj.renumber();
 
   let cursor = { x: 0, y: 0, axis: "across" };
 

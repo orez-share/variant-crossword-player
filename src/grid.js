@@ -329,6 +329,7 @@ export default class Grid {
     });
   }
 
+  // XXX: Honestly, the player probably shouldn't be numbering anything.
   renumber() {
     const { grid, width, height } = this;
     let num = 1;
@@ -352,8 +353,7 @@ export default class Grid {
     };
 
     const isWall = (x, y) => {
-      if (x < 0 || y < 0 || x >= width || y >= height) return true;
-      const idx = y * width + x;
+      const {idx} = this.localCoord({x, y});
       return grid[idx].wall;
     };
 
