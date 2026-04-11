@@ -1,5 +1,6 @@
 // Module for the `Grid` class
-import { normalizedRegion } from './util';
+import { normalizedRegion, gcd, mod } from './util';
+import { leftOf, upOf, rightOf, downOf } from './directions';
 
 // silly overkill decorators for fns which step through
 // the grid either Down or Across.
@@ -100,7 +101,86 @@ const frontClueCell = function({front, step, x, y}) {
 
 // ===
 
+const tessellationOriginRow = ({aw, ah, b, c, lx}) => {
+  const row = [];
+  let ux = 0;
+  let uy = 0;
+  let uw = aw + b;
+  for (let x = 0; x < lx; x++) {
+    if (ux >= uw) { // end of shape
+      ux = 0;
+      uy += c;
+      if (uy >= ah + c) { // start on the next row of utahs
+        uy -= ah + c;
+      }
+      const inC = uy >= ah;
+      uw = inC ? aw : aw + b // recalc uw
+    }
+    row.push({x: ux, y: uy});
+    ux += 1;
+  }
+  return row;
+}
+
+const tessellationConstants = ({width, height, tessellation}) => {
+  const {x, y} = tessellation;
+  console.assert(0 <= x < width, `tessellation.x = ${x}`);
+  console.assert(0 <= y < height, `tessellation.y = ${y}`);
+
+  const aw = width - x;
+  const ah = height - y;
+  const b = x;
+  const c = y;
+
+  // These constants work to find the smallest width after which the
+  // tessellation loops.
+  //   ie: starting from the top-left corner, how far in the `x` axis
+  //   you have to move to hit another top-left corner.
+  // - `txl` is the number of long segments in a loop-width
+  // - `txs` is the number of short segments in a loop-width
+  // - `dx` is used in a couple places, surprisingly.
+  //   - In these constants, it's used to recognize when we loop earlier
+  //     than expected (because we exactly fit multiple loops in a
+  //     "single loop").
+  //   - Weirdly, `dx` is also the number of identical consecutive rows.
+  //     All of our rows are the same shape, modulo some offset. But
+  //     eg: if `dx = 3`, then the first three rows are the _exact_ same,
+  //     including the offset. The next three rows are also identical to
+  //     each other, and so on.
+  //     - This means when we search for the `step` goal, we need to look
+  //       for the height we're actually gonna hit: `dx`
+  //     - And also when we're actually applying the steps, we only want to
+  //       perform a "step" every `dx` rows.
+  // - `lx` is the loop-width itself. It's the number of long segments times
+  //   their width, plus the number of short segments times their width.
+  const dx = gcd(ah, c);
+  const txl = ah / dx;
+  const txs = c / dx;
+  const lx = txl * (aw + b) + txs * aw;
+
+  // The process for finding the loop-height is the same, but with the
+  // axis of all the variables swapped.
+  // Unlike in the loop-width constants, we don't end up reusing `dy`.
+  const dy = gcd(aw, b);
+  const tyl = aw / dy;
+  const tys = b / dy;
+  const ly = tyl * (ah + c) + tys * ah;
+
+  const originRow = tessellationOriginRow({aw, ah, b, c, lx});
+  const step = originRow.findIndex(({y}) => y == dx);
+  return {
+    originRow,
+    gridLoop: {x: lx, y: ly},
+    step,
+    dx,
+  };
+}
+
+// ===
+
 export default class Grid {
+  #tessel;
+
   constructor({width, height, grid, tessellation}) {
     console.assert(grid == null || grid.length === width * height, "wrong size grid");
     this.width = width;
@@ -115,24 +195,9 @@ export default class Grid {
       }));
 
     if (tessellation) {
-      const {x, y} = tessellation;
-      console.assert(0 <= x < width, `tessellation.x = ${x}`);
-      console.assert(0 <= y < height, `tessellation.y = ${y}`);
-      // Mark some cells as Redirects.
-      // Specifically the x by y cells in the bottom right corner
-      const tesselX = width - x;
-      const tesselY = height - y; // I think Odysseus visited tesselY
-      for (let oy = 0; oy < y; oy++) {
-        for (let ox = 0; ox < x; ox++) {
-          let redirect = oy * width + ox;
-          const reredirect = this.grid[redirect].redirect;
-          redirect = reredirect != null ? reredirect : redirect;
-          const idx = (oy + tesselY) * width + (ox + tesselX);
-          this.grid[idx] = { redirect };
-        }
-      }
+      this.tessellation = tessellation;
+      this.#tessel = tessellationConstants({width, height, tessellation});
     }
-    this.tessellation = tessellation;
     this.renumber();
   }
 
@@ -172,48 +237,25 @@ export default class Grid {
     return updates;
   }
 
-  // normalizeTessellatedCoord({x, y, idx}) {
-  //   // I _believe_ this is a similar problem to a hex grid.
-  //   // https://www.redblobgames.com/grids/hexagons/#pixel-to-hex
-
-  //   // Grids are tessellated like Utah:
-  //   // AAAABB
-  //   // AAAABB
-  //   // AAAABB
-  //   // CCCC..
-
-  //   // x = q * AB.width + r * A.width
-  //   // y = q * -C.height + r * A.height
-  //   //
-  //   // soo,
-  //   //   M = [[AB.width, A.width], [-C.height, A.height]] * [[q], [r]]
-  //   //   [[a, b], [c, d]]⁻¹ = (1/ad-bc)[[d, -b], [-c, a]]
-  //   //   M⁻¹ = (1/(AB.width * A.height - A.width * -C.height)) *
-  //   //         [[A.height, -A.width], [C.height, AB.width]]
-  //   // ... this doesn't really simplify.
-  //   const abw = this.width;
-  //   const aw = this.width - this.tessellation.x;
-  //   const ch = -this.tessellation.y;
-  //   const ah = this.height - this.tessellation.y;
-  //   const inv = (abw * ah - aw * ch);
-  //   // const qf = x * (ah / inv) + y * (-aw / inv);
-  //   // const rf = x * (-ch / inv) + y * (abw / inv);
-  //   const qf = (ah * x - aw * y) / inv;
-  //   const rf = (ch * x - abw * y) / -inv;
-  //   const sf = -qf - rf;
-  //   const {q, r, s} = cubeRound({qf, rf, sf});
-  //   console.log("\nin", {x, y}, "=>", {qf, rf, sf}, {q, r, s});
-
-  //   const ox = x - (q * abw + r * aw);
-  //   const oy = y - (q * ch + r * ah);
-  //   const oidx = oy * this.height + ox;
-  //   const out = {x: ox, y: oy, idx: oidx};
-  //   console.log("out:", out);
-  //   return out
-  // }
-
+  // Passing `idx` ONLY for use with coordinates within the bounds of a local utah
+  // XXX: this is a weird precondition but I _am_ relying on it currently.
+  //   Consider how to restructure this to be less weird.
+  localCoord(global_) {
+    let { x, y } = this.normalizeCoordFmt(global_);
+    const { gridLoop, step, dx } = this.#tessel;
+    x = mod(x, gridLoop.x);
+    y = mod(y, gridLoop.y);
+    // Every chunk of `dx` rows are identical to each other.
+    // We only `step` when we reach a new offset of row.
+    const idx = Math.floor(y / dx) * step + x;
+    const coord = this.#tessel.originRow[mod(idx, gridLoop.x)];
+    return this.normalizeCoordFmt(coord);
+  }
 
   // Accepts {x, y} xor {idx}, and returns all three.
+  //
+  // Note that `idx` is ONLY valid for use with coordinates within the
+  // bounds of the local utah.
   normalizeCoordFmt({x, y, idx}) {
     const hasX = x != null;
     const hasY = y != null;
@@ -222,7 +264,6 @@ export default class Grid {
       return {x, y, idx: y * this.width + x};
     }
     if (!hasX && !hasY && hasIdx) {
-      // TODO: negatives
       return {
         x: idx % this.width,
         y: Math.floor(idx / this.width),
@@ -232,75 +273,11 @@ export default class Grid {
     throw new Error("expected {x, y} xor {idx}");
   }
 
-  // TODO: would be nice if we could just update the global coordinate,
-  // and then translate that back into the Origin Utah.
-
-  leftOf({x, y}) {
-    if (x > 0) {
-      // no loop
-      return {x: x - 1, y};
-    } else if (y < this.tessellation.y) {
-      // loop into C
-      return {
-        x: this.innerWidth-1,
-        y: this.innerHeight + y,
-      };
-    } else {
-      // loop into B
-      return {
-        x: this.width - 1,
-        y: y - this.tessellation.y,
-      };
-    }
-  }
-
-  rightOf({x, y}) {
-    if (x == this.innerWidth-1 && y >= this.innerHeight) {
-      // loop from C
-      return {x: 0, y: y - this.innerHeight};
-    } else if (x < this.width-1) {
-      return {x: x + 1, y};
-    } else {
-      // loop from B
-      return {x: 0, y: y + this.tessellation.y};
-    }
-  }
-
-  upOf({x, y}) {
-    if (y > 0) {
-      return {x, y: y - 1};
-    } else if (x < this.tessellation.x) {
-      // loop into B
-      return {
-        x: x + this.innerWidth,
-        y: this.innerHeight-1,
-      };
-    } else {
-      // loop into C
-      return {
-        x: x - this.tessellation.x,
-        y: this.height - 1,
-      };
-    }
-  }
-
-  downOf({x, y}) {
-    if (y == this.innerHeight-1 && x >= this.innerWidth) {
-      // loop from B
-      return {x: x - this.innerWidth, y: 0};
-    } else if (y < this.height-1) {
-      return {x, y: y + 1};
-    } else {
-      // loop from C
-      return {x: x + this.tessellation.x, y: 0};
-    }
-  }
-
   lineAt({x, y, axis}) {
     const cells = new Set;
-    const forward = axis === "across" ? this.rightOf : this.downOf;
-    const backward = axis === "across" ? this.leftOf : this.upOf;
-    const init = { x, y, idx: y * this.width + x };
+    const forward = axis === "across" ? rightOf : downOf;
+    const backward = axis === "across" ? leftOf : upOf;
+    const init = this.localCoord({ x, y });
 
     // &mut cells, &this
     const collect = (init, walk) => {
@@ -308,24 +285,20 @@ export default class Grid {
       while (!this.grid[pos.idx].wall && !cells.has(pos.idx)) {
         cells.add(pos.idx);
         pos = walk(pos);
-        pos.idx = pos.y * this.width + pos.x;
-        // console.log(this.grid[pos.idx]);
+        pos = this.localCoord(pos);
       }
     }
 
-    collect(init, backward.bind(this));
+    collect(init, backward);
     cells.delete(init.idx);
-    collect(init, forward.bind(this));
+    collect(init, forward);
 
     return { cells }
   }
 
-  // at(idx) {
-  //   // TODO: normalizeTessellatedCoord
-  //   console.assert(0 <= idx && idx < this.width * this.height, `out of bounds lookup: ${idx}`);
-  //   const cell = this.grid[idx];
-  //   if (cell.redirect == null) return cell;
-  //   return this.grid[cell.redirect];
+  // at(pos) {
+  //   const { idx } = this.localCoord(pos);
+  //   return this.grid[idx];
   // }
 
   clone() {
@@ -395,24 +368,3 @@ export default class Grid {
     }
   }
 }
-
-// // https://www.redblobgames.com/grids/hexagons/#rounding
-// // I have no idea if this is a valid thing to do to _our_ coordinate system.
-// const cubeRound = ({qf, rf, sf}) => {
-//   let q = Math.round(qf);
-//   let r = Math.round(rf);
-//   let s = Math.round(sf);
-
-//   const qDiff = Math.abs(q - qf);
-//   const rDiff = Math.abs(r - rf);
-//   const sDiff = Math.abs(s - sf);
-
-//   if (qDiff > rDiff && qDiff > sDiff) {
-//     q = -r-s;
-//   } else if (rDiff > sDiff) {
-//     r = -q-s
-//   } else {
-//     s = -q-r
-//   }
-//   return { q, r, s }
-// }

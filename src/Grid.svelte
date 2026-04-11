@@ -1,12 +1,15 @@
 <script>
   import { createEventDispatcher, onMount } from 'svelte';
+  import { leftOf, upOf, rightOf, downOf } from './directions';
   import Grid from "./grid";
 
   const cellFillLen = 1; // !?
+  const viewportWidth = 20;
+  const viewportHeight = 20;
   const gridObj = new Grid({
     width: 13,
     height: 13,
-    tessellation: { x: 3, y: 2 },
+    tessellation: { x: 1, y: 1 },
   });
   $: grid = gridObj.grid;
   $: width = gridObj.width;
@@ -14,6 +17,13 @@
 
   let undos = [];
   let redos = [];
+
+  // number each cell while we're debugging this wacky thing
+  let idx = 1;
+  for (const elem of gridObj.grid) {
+    elem.number = idx;
+    idx++;
+  }
 
   // TODO
   const hardcodedWalls = [
@@ -127,10 +137,10 @@
     }
   }
 
-  const moveLeft = () => setSelected(gridObj.leftOf(cursor));
-  const moveUp = () => setSelected(gridObj.upOf(cursor));
-  const moveRight = () => setSelected(gridObj.rightOf(cursor));
-  const moveDown = () => setSelected(gridObj.downOf(cursor));
+  const moveLeft = () => setSelected(leftOf(cursor));
+  const moveUp = () => setSelected(upOf(cursor));
+  const moveRight = () => setSelected(rightOf(cursor));
+  const moveDown = () => setSelected(downOf(cursor));
 
   const moveAhead = () => {
     if (cursor.axis === "across") return moveRight();
@@ -171,17 +181,7 @@
   }
 
   const setSelected = (coord) => {
-    let { x, y, idx } = gridObj.normalizeCoordFmt(coord);
-    // coord = gridObj.normalizeCoordFmt(coord);
-    // let { x, y, idx } = gridObj.normalizeTessellatedCoord(coord);
-    if (idx < 0 || idx >= width * height) {
-      console.warn({idx});
-      return false;
-    }
-    // const redirect = grid[idx].redirect;
-    // if (redirect != null) {
-    //   ({x, y, idx} = gridObj.normalizeCoordFmt({ idx: redirect }));
-    // }
+    let { x, y, idx } = gridObj.localCoord(coord);
     if (grid[idx].wall) return false;
 
     cursor.x = x;
@@ -202,19 +202,15 @@
 <div id="grid-wrapper">
   <div id="grid"
     tabindex="0"
-    style="grid-template-columns: repeat({width}, 1fr)"
+    style="grid-template-columns: repeat({viewportWidth}, 1fr)"
     on:keydown={handleKey}
     on:contextmenu={evt => evt.preventDefault()}
     bind:this={gridRef}
   >
-    {#each {length: height} as _, rawY }
-      {#each {length: width} as _, rawX }
-        {@const rawIdx = width * rawY + rawX}
-        {@const rawCell = grid[rawIdx]}
-        {@const redirect = rawCell.redirect != null}
-
-        {@const cell = redirect ? grid[rawCell.redirect] : rawCell}
-        {@const idx = redirect ? rawCell.redirect : rawIdx}
+    {#each {length: viewportHeight} as _, y }
+      {#each {length: viewportWidth} as _, x }
+        {@const idx = gridObj.localCoord({x, y}).idx}
+        {@const cell = grid[idx]}
 
         {@const isSelected = cursor.idx === idx}
         <div class="cell"
@@ -224,6 +220,8 @@
           on:mousedown={evt => {
             if (evt.buttons === 0 || evt.buttons === 1) {
               if (idx === cursor.idx) toggleFace();
+              // We're safe to send `idx` here, because it's guaranteed
+              // to be in the local tessellation.
               else setSelected({idx});
             }
           }}
