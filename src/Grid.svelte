@@ -15,9 +15,8 @@
   const renderWidth = gridObj.width * 3;
   const renderHeight = gridObj.height * 3;
 
-  // +1 so we're able to view every cell un-cutoff
-  const viewportWidth = gridObj.width + 1;
-  const viewportHeight = gridObj.height + 1;
+  const viewportWidth = gridObj.width;
+  const viewportHeight = gridObj.height;
 
   const gridCellContentPx = 32;
   const gridCellBorderPx = gridCellContentPx + 1;
@@ -207,6 +206,14 @@
     }
   }
 
+  const handleDragDrop = (evt) => {
+    drag = null;
+    // snap to closest cell
+    // TODO: quick animation could be fun polish
+    scroll.x = Math.round(scroll.x / gridCellBorderPx) * gridCellBorderPx;
+    scroll.y = Math.round(scroll.y / gridCellBorderPx) * gridCellBorderPx;
+  }
+
   // this feels super jank but we'll seeee
   const recenterScroll = () => {
     if (scroll.x > 0) {
@@ -245,7 +252,7 @@
 </script>
 
 <svelte:window
-  on:mouseup={() => drag = null}
+  on:mouseup={handleDragDrop}
 />
 <div id="grid-wrapper"
   on:mousedown={handleDragClick}
