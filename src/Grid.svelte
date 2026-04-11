@@ -4,19 +4,26 @@
   import Grid from "./grid";
 
   const cellFillLen = 1; // !?
-  const viewportWidth = 20;
-  const viewportHeight = 20;
   const gridObj = new Grid({
     width: 13,
     height: 13,
     tessellation: { x: 1, y: 1 },
   });
   $: grid = gridObj.grid;
-  $: width = gridObj.width;
-  $: height = gridObj.height;
+  // TODO: this probably isn't sufficient for Weird Grids.
+  // consider some failsafes
+  const renderWidth = gridObj.width * 3;
+  const renderHeight = gridObj.height * 3;
+
+  // +1 so we're able to view every cell un-cutoff
+  const viewportWidth = gridObj.width + 1;
+  const viewportHeight = gridObj.height + 1;
 
   let undos = [];
   let redos = [];
+
+  let drag = null;
+  let scroll = {x: 0, y: 0};
 
   // TODO
   const hardcodedWalls = [
@@ -185,24 +192,38 @@
     return true;
   }
 
-  // onMount(async () => {
-  //   await init();
-  // });
+  const handleDragClick = (evt) => {
+    drag = {x: evt.x - scroll.x, y: evt.y - scroll.y};
+  }
+
+  const handleDragScroll = (evt) => {
+    if (drag) {
+      scroll.x = evt.x - drag.x;
+      scroll.y = evt.y - drag.y;
+    }
+  }
 </script>
 
-<!-- <svelte:window
-  on:mouseup={() => selected && (selected.state = null)}
-/> -->
-<div id="grid-wrapper">
+<svelte:window
+  on:mouseup={() => drag = null}
+/>
+<div id="grid-wrapper"
+  on:mousedown={handleDragClick}
+  on:mousemove={handleDragScroll}
+  style="
+    width: calc((2em + 1px) * {viewportWidth} + 1px);
+    height: calc((2em + 1px) * {viewportHeight} + 1px);
+  "
+>
   <div id="grid"
     tabindex="0"
-    style="grid-template-columns: repeat({viewportWidth}, 1fr)"
+    style="grid-template-columns: repeat({renderWidth}, 1fr); left: {scroll.x}px; top: {scroll.y}px;"
     on:keydown={handleKey}
     on:contextmenu={evt => evt.preventDefault()}
     bind:this={gridRef}
   >
-    {#each {length: viewportHeight} as _, y }
-      {#each {length: viewportWidth} as _, x }
+    {#each {length: renderHeight} as _, y }
+      {#each {length: renderWidth} as _, x }
         {@const idx = gridObj.localCoord({x, y}).idx}
         {@const cell = grid[idx]}
 
@@ -232,11 +253,12 @@
 
 <style>
   #grid-wrapper {
-    display: flex;
-    flex-direction: column;
+    position: relative;
+    overflow: hidden;
   }
 
   #grid {
+    position: absolute;
     display: grid;
     background-color: #111;
     grid-gap: 1px;
@@ -297,18 +319,8 @@
     margin-right: auto;
   }
 
-  .preview {
-    color: darkgray;
-  }
-
   .clue label {
     display: block;
-  }
-
-  .meta {
-    display: inline-block;
-    width: 400px;
-    margin-right: 10px;
   }
 
   .flex-container {
@@ -317,23 +329,6 @@
 
   .fill-width {
     flex: 1;
-  }
-
-  .header {
-    display: flex;
-    margin-bottom: 10px;
-    width: 661px; /* TODO: don't */
-    flex-wrap: wrap;
-  }
-
-  .push {
-    margin-left: auto;
-  }
-
-  input.title {
-    font-size: 1.5em;
-    display: block;
-    margin-bottom: 5px;
   }
 
   button {

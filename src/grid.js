@@ -242,13 +242,13 @@ export default class Grid {
   //   Consider how to restructure this to be less weird.
   localCoord(global_) {
     let { x, y } = this.normalizeCoordFmt(global_);
-    const { gridLoop, step, dx } = this.#tessel;
+    const { gridLoop, step, dx, originRow } = this.#tessel;
     x = mod(x, gridLoop.x);
     y = mod(y, gridLoop.y);
     // Every chunk of `dx` rows are identical to each other.
     // We only `step` when we reach a new offset of row.
     const idx = Math.floor(y / dx) * step + x;
-    const coord = this.#tessel.originRow[mod(idx, gridLoop.x)];
+    const coord = originRow[mod(idx, gridLoop.x)];
     return this.normalizeCoordFmt(coord);
   }
 
