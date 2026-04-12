@@ -1,5 +1,5 @@
 <script>
-  import { createEventDispatcher, onMount } from 'svelte';
+  import { onMount } from 'svelte';
   import { leftOf, upOf, rightOf, downOf } from './directions';
   import Grid from "./grid";
 
@@ -38,7 +38,7 @@
   }
   gridObj.renumber();
 
-  let cursor = { x: 0, y: 0, axis: "across" };
+  let cursor = { x: 0, y: 0, idx: 0, axis: "across" };
 
   let gridRef;
 
@@ -145,15 +145,8 @@
   const moveRight = () => setSelected(rightOf(cursor));
   const moveDown = () => setSelected(downOf(cursor));
 
-  const moveAhead = () => {
-    if (cursor.axis === "across") return moveRight();
-    else return moveDown();
-  }
-
-  const moveBack = () => {
-    if (cursor.axis === "across") return moveLeft();
-    else return moveUp();
-  }
+  const moveAhead = () => cursor.axis === "across" ? moveRight() : moveDown();
+  const moveBack = () => cursor.axis === "across" ? moveLeft() : moveUp();
 
   const nextWord = () => {
     console.log("aight go to the next word");
@@ -249,6 +242,11 @@
       scroll.y -= h;
     }
   }
+  onMount(() => {
+    // TODO: Start at the first across
+    setSelected({idx: 0});
+    gridRef.focus();
+  })
 </script>
 
 <svelte:window
@@ -273,11 +271,9 @@
       {#each {length: renderWidth} as _, x }
         {@const idx = gridObj.localCoord({x, y}).idx}
         {@const cell = grid[idx]}
-
-        {@const isSelected = cursor.idx === idx}
         <div class="cell"
           class:selected-line={cursor.line && cursor.line.cells.has(idx)}
-          class:selected={isSelected}
+          class:selected={cursor.idx === idx}
           class:wall={cell.wall}
           on:mousedown={evt => {
             if (evt.buttons === 0 || evt.buttons === 1) {
