@@ -1,9 +1,7 @@
 <script>
   import { leftOf, upOf, rightOf, downOf } from './directions';
 
-  export let gridObj;
-  export let cursor;
-  export let cursorMethods;
+  let { gridObj, cursor, cursorMethods } = $props();
   export const focus = () => { gridRef.focus() };
   const {
     setSelected,
@@ -15,7 +13,7 @@
 
   const biffLimit = 1000;
   const cellFillLen = 1; // !?
-  $: grid = gridObj.grid;
+  let grid = $derived(gridObj.grid);
   // TODO: this probably isn't sufficient for Weird Grids.
   // consider some failsafes
   const renderWidth = gridObj.width * 3;
@@ -31,9 +29,9 @@
   let redos = [];
 
   let drag = null;
-  let scroll = {x: 0, y: 0};
+  let scroll = $state({x: 0, y: 0});
 
-  let gridRef;
+  let gridRef = $state();
 
   // XXX:
   // I guess Grid.svelte ought to handle a custom enum of semantic events,
@@ -264,11 +262,11 @@
 </script>
 
 <svelte:window
-  on:mouseup={handleDragDrop}
+  onmouseup={handleDragDrop}
 />
 <div id="grid-wrapper"
-  on:mousedown={handleDragClick}
-  on:mousemove={handleDragScroll}
+  onmousedown={handleDragClick}
+  onmousemove={handleDragScroll}
   style="
     width: {gridCellBorderPx * viewportWidth + 1}px;
     height: {gridCellBorderPx * viewportHeight + 1}px;
@@ -281,8 +279,8 @@
       left: {scroll.x}px;
       top: {scroll.y}px;
     "
-    on:keydown={handleKey}
-    on:contextmenu={evt => evt.preventDefault()}
+    onkeydown={handleKey}
+    oncontextmenu={evt => evt.preventDefault()}
     bind:this={gridRef}
   >
     {#each {length: renderHeight} as _, y }
@@ -293,7 +291,7 @@
           class:selected-line={cursor.line && cursor.line.cells.has(idx)}
           class:selected={cursor.idx === idx}
           class:wall={cell.wall}
-          on:mousedown={evt => {
+          onmousedown={evt => {
             if (evt.buttons === 0 || evt.buttons === 1) {
               if (idx === cursor.idx) toggleFace();
               // We're safe to send `idx` here, because it's guaranteed

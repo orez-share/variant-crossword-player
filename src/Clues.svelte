@@ -1,11 +1,15 @@
 <script>
+  import { run } from 'svelte/legacy';
+
   import { onMount } from 'svelte';
 
-  export let clues;
-  export let axis;
-  export let selected;
 
-  export let onClick;
+  let {
+    clues,
+    axis,
+    selected,
+    onClick
+  } = $props();
   let doc;
 
   const scrollToClue = (num) => {
@@ -14,7 +18,9 @@
     if (!el) return;
     el.scrollIntoView({block: "center"});
   };
-  $: scrollToClue(selected);
+  run(() => {
+    scrollToClue(selected);
+  });
 
   onMount(() => {
     doc = document; // svelte sucks
@@ -27,7 +33,7 @@
     {#each clues as [num, clue] }
       <li
         id={`${axis}-${num}`}
-        on:click={() => onClick(num)}
+        onclick={() => onClick(num)}
         class:selected={num === selected}
       >
         <strong>{num}</strong> {clue}

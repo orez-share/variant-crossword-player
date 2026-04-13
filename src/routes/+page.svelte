@@ -4,10 +4,10 @@
   import Grid from '../Grid.svelte';
   import { clues, gridObj } from "../puz";
 
-  let gridRef;
+  let gridRef = $state();
 
-  let cursor = { x: 0, y: 0, idx: 0, axis: "across" };
-  $: selectedClue = cursor.line && clues[cursor.axis].find(([num, _]) => cursor.line.number === num)?.[1];
+  let cursor = $state({ x: 0, y: 0, idx: 0, axis: "across" });
+  let selectedClue = $derived(cursor.line && clues[cursor.axis].find(([num, _]) => cursor.line.number === num)?.[1]);
 
   const setSelected = (coord) => {
     let { x, y, idx } = gridObj.localCoord(coord);
