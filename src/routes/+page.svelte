@@ -30,6 +30,16 @@
     cursor.line = gridObj.lineAt(cursor);
   }
 
+  const prevWord = () => {
+    const [num, idx] = gridObj.prevWordFrom({ number: cursor.line.number, axis: cursor.axis });
+    setSelected({idx});
+  }
+
+  const nextWord = () => {
+    const [num, idx] = gridObj.nextWordFrom({ number: cursor.line.number, axis: cursor.axis });
+    setSelected({idx});
+  }
+
   // when you click a clue,
   // - it takes you to the next letter to solve in that clue
   //   - unless it's full, in which case you go to the first letter
@@ -46,6 +56,8 @@
     setSelected,
     face,
     toggleFace,
+    prevWord,
+    nextWord,
   };
 
   onMount(() => {

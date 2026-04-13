@@ -83,6 +83,7 @@ const tessellationConstants = ({width, height, tessellation}) => {
 
 export default class Grid {
   #tessel;
+  #cluePositions;
 
   constructor({width, height, grid, tessellation}) {
     console.assert(grid == null || grid.length === width * height, "wrong size grid");
@@ -93,9 +94,8 @@ export default class Grid {
         wall: false,
         fill: "",
         number: null,
-        downClue: null,
-        acrossClue: null,
       }));
+    this.#cluePositions = {across: [], down: []};
 
     if (tessellation) {
       this.tessellation = tessellation;
@@ -169,14 +169,33 @@ export default class Grid {
         pos = walk(pos);
         pos = this.localCoord(pos);
       }
-      return this.grid[last.idx].number;
+      return last.idx;
     }
 
-    const number = collect(init, backward);
+    const first = collect(init, backward);
+    const number = this.grid[first].number;
     cells.delete(init.idx);
-    collect(init, forward);
+    const last = collect(init, forward);
 
-    return { cells, number }
+    return { cells, number, first, last }
+  }
+
+  prevWordFrom({number, axis}) {
+    const clues = this.#cluePositions[axis];
+    // XXX: could binary search
+    let clueIdx = clues.findIndex(([num, _]) => num === number);
+    if (clueIdx === -1) throw new Error(`missing ${number}`);
+    clueIdx = mod(clueIdx - 1, clues.length);
+    return clues[clueIdx];
+  }
+
+  nextWordFrom({number, axis}) {
+    const clues = this.#cluePositions[axis];
+    // XXX: could binary search
+    let clueIdx = clues.findIndex(([num, _]) => num === number);
+    if (clueIdx === -1) throw new Error(`missing ${number}`);
+    clueIdx = (clueIdx + 1) % clues.length;
+    return clues[clueIdx];
   }
 
   // at(pos) {
@@ -193,21 +212,17 @@ export default class Grid {
   // XXX: Honestly, the player probably shouldn't be numbering anything.
   renumber() {
     const { grid, width, height } = this;
+    const across = [];
+    const down = [];
+
     let num = 1;
     const setNum = ({idx, topBounded, leftBounded}) => {
       const cell = grid[idx];
-      const bounded = topBounded || leftBounded;
       cell.number = null;
-      if (cell.wall) {
-        cell.downClue = null;
-        cell.acrossClue = null;
-        return;
-      }
-      if (topBounded) cell.downClue ??= "";
-      else cell.downClue = null;
-      if (leftBounded) cell.acrossClue ??= "";
-      else cell.acrossClue = null;
-      if (!cell.wall && bounded) {
+      if (cell.wall) return;
+      if (leftBounded) across.push([num, idx]);
+      if (topBounded) down.push([num, idx]);
+      if (topBounded || leftBounded) {
         cell.number = num;
         num++;
       }
@@ -227,5 +242,6 @@ export default class Grid {
         setNum({idx, topBounded, leftBounded});
       }
     }
+    this.#cluePositions = {across, down};
   }
 }

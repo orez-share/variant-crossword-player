@@ -9,6 +9,8 @@
     setSelected,
     face,
     toggleFace,
+    prevWord,
+    nextWord,
   } = cursorMethods;
 
   const cellFillLen = 1; // !?
@@ -65,10 +67,14 @@
         // this is a little complicated.
         // - if there's anything in your cell, delete the last chr and don't move
         // - otherwise, move back a cell and delete the last chr
-        //   - "move back a cell" can jump walls
+        //   - UNLESS moving back jumps a wall, in which case just chill
         let idx = cursor.idx;
         if (!grid[idx].fill.length) {
-          moveBack();
+          if (!moveBack()) {
+            prevWord();
+            setSelected({idx: cursor.line.last});
+            break;
+          }
           idx = cursor.idx;
         }
         const fill = grid[idx].fill.slice(0, -1);
@@ -77,11 +83,15 @@
       case 9: // tab
         evt.preventDefault();
         if (evt.shiftKey) {
-          // oof
+          prevWord();
+          backToUnfilled();
         } else {
           nextWord();
-          advanceToUnfilled();
+          aheadToUnfilled();
         }
+        break;
+      case 32: // space
+        toggleFace();
         break;
       default:
         // if (evt.ctrlKey || evt.metaKey) {
@@ -104,26 +114,50 @@
           // if there's space, add the letter
           let fill = (cellFilled(idx) ? "" : grid[idx].fill) + chr;
           performAction("Type character", [{idx, is: {fill}}]);
-          advanceToUnfilled();
+
+          const start = 0;
+          if (!nextOpenCellInWord()) aheadToUnfilled();
         }
     }
   };
 
   const cellFilled = (idx) => grid[idx].fill.length >= cellFillLen;
 
-  const advanceToUnfilled = () => {
-    // go to the next non-full cell in the word,
-    // loop {
-    //   restart the word and try again
-    //   go to the next word NUMERICALLY
-    // }
-    // let pos = ({x, y} => ({x, y}))(cursor);
+  // Find the next open cell in the current word.
+  // Start at the current position: if you hit the end of the line,
+  // go back to the front of the line and continue. If you hit your
+  // starting position, return false.
+  const nextOpenCellInWord = () => {
+    const first = cursor.line.first;
+    const start = cursor.idx;
+    do {
+      if (!cellFilled(cursor.idx)) return true;
+      if (!moveAhead()) setSelected({idx: first});
+    } while(start !== cursor.idx)
+    return false;
+  }
+
+  const backToUnfilled = () => {
+    // go to the next non-full cell in the word
+    let oops = 0;
+    while (cellFilled(cursor.idx)) {
+      oops++;
+      // note that we still `moveAhead`: we walk forward within a word,
+      // even as we walk backward in the grid.
+      if (!moveAhead()) {
+        prevWord();
+      }
+      if (oops > 1000) throw new Error("you biffed it");
+    }
+  }
+
+  const aheadToUnfilled = () => {
+    // go to the next non-full cell in the word
     let oops = 0;
     while (cellFilled(cursor.idx)) {
       oops++;
       if (!moveAhead()) {
-        nextWord(); return;
-        break;
+        nextWord();
       }
       if (oops > 1000) throw new Error("you biffed it");
     }
@@ -136,10 +170,6 @@
 
   const moveAhead = () => cursor.axis === "across" ? moveRight() : moveDown();
   const moveBack = () => cursor.axis === "across" ? moveLeft() : moveUp();
-
-  const nextWord = () => {
-    console.log("aight go to the next word");
-  }
 
   // ===
 
