@@ -1,10 +1,24 @@
 <script>
+  import { onMount } from 'svelte';
+
   export let clues;
   export let axis;
   export let selected;
 
   export let onClick;
-  // TODO: scroll down to the `selected` when `selected` changes
+  let doc;
+
+  const scrollToClue = (num) => {
+    if (!doc) return;
+    const el = doc.getElementById(`${axis}-${num}`);
+    if (!el) return;
+    el.scrollIntoView({block: "center"});
+  };
+  $: scrollToClue(selected);
+
+  onMount(() => {
+    doc = document; // svelte sucks
+  });
 </script>
 
 <div class="panel">
@@ -12,6 +26,7 @@
   <ul>
     {#each clues as [num, clue] }
       <li
+        id={`${axis}-${num}`}
         on:click={() => onClick(num)}
         class:selected={num === selected}
       >
