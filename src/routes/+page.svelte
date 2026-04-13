@@ -5,6 +5,7 @@
   import { clues, gridObj } from '../puz';
   import Cursor from '../cursor.svelte.js';
 
+  // TODO: I'm not sure this needs to be a $state?
   let gridRef = $state();
 
   let cursor = $state(new Cursor(gridObj));

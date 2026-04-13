@@ -4,8 +4,6 @@
   let { gridObj, cursor } = $props();
   export const focus = () => { gridRef.focus() };
 
-  const biffLimit = 1000;
-  const cellFillLen = 1; // !?
   let grid = $derived(gridObj.grid);
   // TODO: this probably isn't sufficient for Weird Grids.
   // consider some failsafes
@@ -38,22 +36,22 @@
       case 37: // <
         evt.preventDefault();
         if (cursor.axis === "down" && !evt.shiftKey) cursor.axis = "across";
-        else jump(leftOf);
+        else cursor.jump(leftOf);
         break;
       case 38: // ^
         evt.preventDefault();
         if (cursor.axis === "across" && !evt.shiftKey) cursor.axis = "down";
-        else jump(upOf);
+        else cursor.jump(upOf);
         break;
       case 39: // >
         evt.preventDefault();
         if (cursor.axis === "down" && !evt.shiftKey) cursor.axis = "across";
-        else jump(rightOf);
+        else cursor.jump(rightOf);
         break;
       case 40: // v
         evt.preventDefault();
         if (cursor.axis === "across" && !evt.shiftKey) cursor.axis = "down";
-        else jump(downOf);
+        else cursor.jump(downOf);
         break;
       case 8: // bksp
         // this is a little complicated.
@@ -76,14 +74,14 @@
         evt.preventDefault();
         if (evt.shiftKey) {
           cursor.prevWord();
-          backToUnfilled();
+          cursor.backToUnfilled();
         } else {
           cursor.nextWord();
-          aheadToUnfilled();
+          cursor.aheadToUnfilled();
         }
         break;
       case 32: // space
-        cursor.toggleFace();
+        cursor.toggleAxis();
         break;
       default:
         // if (evt.ctrlKey || evt.metaKey) {
@@ -104,79 +102,14 @@
           if (grid[idx].wall) return;
           // if there's not space, replace the fill
           // if there's space, add the letter
-          let fill = (cellFilled(idx) ? "" : grid[idx].fill) + chr;
+          let fill = (gridObj.cellFilled(idx) ? "" : grid[idx].fill) + chr;
           performAction("Type character", [{idx, is: {fill}}]);
 
           const start = 0;
-          if (!nextOpenCellInWord()) aheadToUnfilled();
+          if (!cursor.nextOpenCellInWord()) cursor.aheadToUnfilled();
         }
     }
   };
-
-  const cellFilled = (idx) => grid[idx].fill.length >= cellFillLen;
-
-  // Find the next open cell in the current word.
-  // Start at the current position: if you hit the end of the line,
-  // go back to the front of the line and continue. If you hit your
-  // starting position, return false.
-  const nextOpenCellInWord = () => {
-    const first = cursor.line.first;
-    const start = cursor.idx;
-    do {
-      if (!cellFilled(cursor.idx)) return true;
-      if (!moveAhead()) cursor.setSelected({idx: first});
-    } while(start !== cursor.idx)
-    return false;
-  }
-
-  const backToUnfilled = () => {
-    // go to the next non-full cell in the word
-    let oops = 0;
-    while (cellFilled(cursor.idx)) {
-      // note that we still `moveAhead`: we walk forward within a word,
-      // even as we walk backward in the grid.
-      if (!moveAhead()) {
-        cursor.prevWord();
-      }
-      if (oops++ > biffLimit) throw new Error("you biffed it");
-    }
-  }
-
-  const aheadToUnfilled = () => {
-    // go to the next non-full cell in the word
-    let oops = 0;
-    while (cellFilled(cursor.idx)) {
-      if (!moveAhead()) {
-        cursor.nextWord();
-      }
-      if (oops++ > biffLimit) throw new Error("you biffed it");
-    }
-  }
-
-  // Apply `step` fn to the cursor position until you find a nonwall cell,
-  // and move the cursor there. Used for the arrow keys.
-  const jump = (step) => {
-    let oops = 0;
-    let pos = cursor;
-    let cell;
-    do {
-      pos = step(pos);
-      pos = gridObj.localCoord(pos);
-      cell = gridObj.grid[pos.idx];
-      if (oops++ > biffLimit) throw new Error("you biffed it");
-    } while (cell.wall)
-    cursor.setSelected({idx: pos.idx});
-  }
-
-  // Move the cursor one step in the given direction, unless this would move
-  // the cursor into a wall. Returns `false` in this case, `true` otherwise.
-  const moveLeft = () => cursor.setSelected(leftOf(cursor));
-  const moveUp = () => cursor.setSelected(upOf(cursor));
-  const moveRight = () => cursor.setSelected(rightOf(cursor));
-  const moveDown = () => cursor.setSelected(downOf(cursor));
-
-  const moveAhead = () => cursor.axis === "across" ? moveRight() : moveDown();
-  const moveBack = () => cursor.axis === "across" ? moveLeft() : moveUp();
 
   // ===
 
@@ -191,6 +124,9 @@
     undos = undos;
     redos = [];
   }
+
+  // ===
+  // Scroll methods
 
   const handleDragClick = (evt) => {
     drag = {x: evt.x - scroll.x, y: evt.y - scroll.y};
@@ -286,7 +222,7 @@
           class:wall={cell.wall}
           onmousedown={evt => {
             if (evt.buttons === 0 || evt.buttons === 1) {
-              if (idx === cursor.idx) cursor.toggleFace();
+              if (idx === cursor.idx) cursor.toggleAxis();
               // We're safe to send `idx` here, because it's guaranteed
               // to be in the local tessellation.
               else cursor.setSelected({idx});

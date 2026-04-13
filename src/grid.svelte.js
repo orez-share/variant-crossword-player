@@ -2,6 +2,8 @@
 import { normalizedRegion, gcd, mod } from './util';
 import { leftOf, upOf, rightOf, downOf } from './directions';
 
+const cellFillLen = 1; // !?
+
 // ===
 
 const tessellationOriginRow = ({aw, ah, b, c, lx}) => {
@@ -245,4 +247,6 @@ export default class Grid {
     }
     this.#cluePositions = {across, down};
   }
+
+  cellFilled = (idx) => this.grid[idx].fill.length >= cellFillLen;
 }
