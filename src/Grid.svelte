@@ -14,9 +14,6 @@
   const gridCellContentPx = 32;
   const gridCellBorderPx = gridCellContentPx + 1;
 
-  let undos = [];
-  let redos = [];
-
   let drag = null;
   let scroll = $state({x: 0, y: 0});
 
@@ -65,8 +62,7 @@
           }
           idx = cursor.idx;
         }
-        const fill = grid[idx].fill.slice(0, -1);
-        performAction("Delete cell contents", [{idx, is: {fill}}]);
+        grid[idx].fill = grid[idx].fill.slice(0, -1);
         break;
       case 9: // tab
         evt.preventDefault();
@@ -83,17 +79,6 @@
         cursor.toggleAxis();
         break;
       default:
-        // if (evt.ctrlKey || evt.metaKey) {
-        //   switch (evt.keyCode) {
-        //     case 90: // Z
-        //       if (evt.shiftKey) {
-        //         redo();
-        //       } else {
-        //         undo();
-        //       }
-        //       break;
-        //   }
-        // }
         if (evt.ctrlKey || evt.altKey || evt.metaKey) return;
         if (evt.keyCode > 64 && evt.keyCode < 91) {
           const chr = String.fromCharCode(evt.keyCode);
@@ -101,27 +86,12 @@
           if (grid[idx].wall) return;
           // if there's not space, replace the fill
           // if there's space, add the letter
-          let fill = (gridObj.cellFilled(idx) ? "" : grid[idx].fill) + chr;
-          performAction("Type character", [{idx, is: {fill}}]);
+          grid[idx].fill = (gridObj.cellFilled(idx) ? "" : grid[idx].fill) + chr;
 
           if (!cursor.nextOpenCellInWord()) cursor.aheadToUnfilled();
         }
     }
   };
-
-  // ===
-
-  const performAction = (action, updates) => {
-    for (let update of updates) {
-      const keys = Object.keys(update.is);
-      update.was = Object.fromEntries(keys.map(key => [key, grid[update.idx][key]]));
-      grid[update.idx] = {...grid[update.idx], ...update.is};
-    }
-
-    undos.push({action, updates});
-    undos = undos;
-    redos = [];
-  }
 
   // ===
   // Scroll methods
@@ -303,21 +273,5 @@
     bottom: 2px;
     margin-left: auto;
     margin-right: auto;
-  }
-
-  .clue label {
-    display: block;
-  }
-
-  .flex-container {
-    display: flex;
-  }
-
-  .fill-width {
-    flex: 1;
-  }
-
-  button {
-    margin-bottom: 10px;
   }
 </style>

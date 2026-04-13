@@ -1,5 +1,5 @@
 // Module for the `Grid` class
-import { normalizedRegion, gcd, mod } from './util';
+import { gcd, mod } from './util';
 import { leftOf, upOf, rightOf, downOf } from './directions';
 
 const cellFillLen = 1; // !?
@@ -200,11 +200,6 @@ export default class Grid {
     clueIdx = (clueIdx + 1) % clues.length;
     return clues[clueIdx];
   }
-
-  // at(pos) {
-  //   const { idx } = this.localCoord(pos);
-  //   return this.grid[idx];
-  // }
 
   locationOfNum(num) {
     // XXX: this is linear currently. We could construct a lookup
