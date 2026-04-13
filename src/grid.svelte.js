@@ -89,12 +89,13 @@ export default class Grid {
     console.assert(grid == null || grid.length === width * height, "wrong size grid");
     this.width = width;
     this.height = height;
-    this.grid = grid ?? Array(width * height).fill(null)
+    grid ??= Array(width * height).fill(null)
       .map(() => ({
         wall: false,
         fill: "",
         number: null,
       }));
+    this.grid = $state(grid);
     this.#cluePositions = {across: [], down: []};
 
     if (tessellation) {

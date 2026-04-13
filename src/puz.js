@@ -2,7 +2,7 @@
 // We're gonna delete all the data in here someday, so we're keeping
 // it all in this file to keep it separate from the real code.
 
-import Grid from "./grid";
+import Grid from "./grid.svelte.js";
 
 const hardcodedWalls = [
   6, 7, 11, 17, 18, 25, 26, 30, 35, 40, 41, 42, 59,
