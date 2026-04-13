@@ -90,6 +90,17 @@ export default class Cursor {
     }
   }
 
+  // when you click a clue,
+  // - it takes you to the next letter to solve in that clue
+  //   - unless it's full, in which case you go to the first letter
+  // - regardless of if you're already in that clue or not
+  focusClue = (axis, number) => {
+    const idx = this.gridObj.locationOfNum(number);
+    this.axis = axis;
+    this.setSelected({idx});
+    this.nextOpenCellInWord();
+  };
+
   // Apply `step` fn to the cursor position until you find a nonwall cell,
   // and move the cursor there. Used for the arrow keys.
   jump = (step) => {

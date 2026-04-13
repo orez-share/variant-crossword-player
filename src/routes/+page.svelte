@@ -11,22 +11,16 @@
   let cursor = $state(new Cursor(gridObj));
   let selectedClue = $derived(cursor.line && clues[cursor.axis].find(([num, _]) => cursor.line.number === num)?.[1]);
 
-  // when you click a clue,
-  // - it takes you to the next letter to solve in that clue
-  //   - unless it's full, in which case you go to the first letter
-  // - regardless of if you're already in that clue or not
   const focusClue = (axis, number) => {
-    const idx = gridObj.locationOfNum(number);
-    cursor.axis = axis;
-    cursor.setSelected({idx});
-    // TODO: advance
+    cursor.focusClue(axis, number);
+    // is this weird? i think this is weird.
+    // TODO: rethink how focus works
     gridRef.focus();
   };
 
   onMount(() => {
     // Start at the first across
     focusClue("across", clues.across[0][0]);
-    gridRef.focus();
   })
 </script>
 
