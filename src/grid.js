@@ -2,103 +2,6 @@
 import { normalizedRegion, gcd, mod } from './util';
 import { leftOf, upOf, rightOf, downOf } from './directions';
 
-// silly overkill decorators for fns which step through
-// the grid either Down or Across.
-// The decorated function should be generic over, and accept,:
-// - `x` and `y`, some starting position
-// - `front`, representing the index of the start of the axis (inclusive)
-// - `back`, representing the index past the end of the axis (exclusive)
-// - `step`, the amount to step the index by
-
-const downStep = function(fn) {
-  return function({x, y, ...kwargs}) {
-    console.assert(this instanceof Grid, "`this` bound wrong");
-    return fn.call(this, {
-      x, y, ...kwargs,
-      front: 0,
-      back: this.grid.length,
-      step: this.width,
-    });
-  }
-};
-
-const acrossStep = function(fn) {
-  return function({x, y, ...kwargs}) {
-    console.assert(this instanceof Grid, "`this` bound wrong");
-    const row = y * this.width;
-    return fn.call(this, {
-      x, y, ...kwargs,
-      front: row,
-      back: row + this.width,
-      step: 1,
-    });
-  }
-}
-
-// ===
-// fn for fetching the "fill pattern" around some coordinate.
-// A "pattern" (: [String]) is the cell fill before and after
-// the coordinate in the given axis, from wall to wall.
-
-const snagPattern = function({front, back, step, x, y, x2, y2}) {
-  // I wrote this function bad, as a joke.
-  const { grid, width } = this;
-  const ERROR = null;
-  let chunkIndex = -1;
-  let idx = y * width + x;
-  if (grid[idx].wall) return ERROR; // XXX
-  // run backwards
-  for(; idx >= front; idx -= step) {
-    if (grid[idx].wall) break;
-    chunkIndex++;
-  }
-  const region = normalizedRegion({x, y, x2, y2});
-  const selIdx = {
-    start: region.minY * width + region.minX,
-    end: region.maxY * width + region.maxX,
-  };
-  const sel = { start: null, end: null };
-  const start = idx + step;
-  let gridChunks = [];
-  // run forward and collect chunks
-  for (idx = start; idx < back && !grid[idx].wall; idx += step) {
-    if (idx == selIdx.start) sel.start = gridChunks.length;
-    else if (idx == selIdx.end) sel.end = gridChunks.length;
-    gridChunks.push(grid[idx].fill);
-  }
-
-  // If we're selecting a single line of cells which falls entirely within
-  // the pattern we're snagging, force the suggestions to completely
-  // fill the selection.
-  //
-  // Understanding how these requirements are represented by this condition
-  // is left as an exercise to the reader (sorry).
-  let exact = false;
-  if (sel.start != null && sel.end != null) {
-    gridChunks = gridChunks.slice(sel.start, sel.end + 1);
-    chunkIndex -= sel.start;
-    exact = true;
-  }
-  return { pattern: gridChunks, index: chunkIndex, exact };
-}
-
-// ===
-
-const frontClueCell = function({front, step, x, y}) {
-  const { grid, width } = this;
-  // unselected value is an empty object
-  // because it simplifies the svelte binds
-  if (x == null || y == null) return {};
-  let idx = x + width * y;
-  if (!grid[idx]) return {};
-
-  // Step backward into the leading wall, or out of bounds.
-  for (; idx >= front && !grid[idx].wall; idx -= step) { }
-
-  // Step forward again to get leading space
-  return grid[idx + step] || {};
-};
-
 // ===
 
 const tessellationOriginRow = ({aw, ah, b, c, lx}) => {
@@ -209,34 +112,6 @@ export default class Grid {
     return this.height - this.tessellation.y;
   }
 
-  acrossStep(fn) { return acrossStep(fn) }
-  downStep(fn) { return downStep(fn) }
-
-  acrossPattern = acrossStep(snagPattern);
-  downPattern = downStep(snagPattern);
-
-  acrossClueCell = acrossStep(frontClueCell);
-  downClueCell = downStep(frontClueCell);
-
-  // XXX: Takes ownership of `sub`.
-  updatesForBlitSubgrid(sub, {offX, offY}) {
-    // TODO: some visual feedback if this fails
-    if (offX + sub.width > this.width || offY + sub.height > this.height) return;
-    const updates = [];
-    let gridIdx = 0;
-    for (let y = 0; y < sub.height; y++) {
-      for (let x = 0; x < sub.width; x++) {
-        const idx = (offY + y) * this.width + (offX + x);
-        updates.push({
-          idx,
-          is: sub.grid[gridIdx],
-        });
-        gridIdx++;
-      }
-    }
-    return updates;
-  }
-
   // Passing `idx` ONLY for use with coordinates within the bounds of a local utah
   // XXX: this is a weird precondition but I _am_ relying on it currently.
   //   Consider how to restructure this to be less weird.
@@ -308,34 +183,6 @@ export default class Grid {
   //   const { idx } = this.localCoord(pos);
   //   return this.grid[idx];
   // }
-
-  clone() {
-    const grid = [];
-    for (const elem of this.grid) {
-      grid.push({...elem});
-    }
-    return new Grid({
-      grid,
-      height: this.height,
-      width: this.width,
-    });
-  }
-
-  // Clone a region of the grid.
-  cloneSubgrid({minX, minY, maxX, maxY}) {
-    const grid = [];
-    for (let y = minY; y <= maxY; y++) {
-      for (let x = minX; x <= maxX; x++) {
-        const idx = y * this.width + x;
-        grid.push({...this.grid[idx]});
-      }
-    }
-    return new Grid({
-      grid,
-      height: maxY - minY + 1,
-      width: maxX - minX + 1,
-    });
-  }
 
   locationOfNum(num) {
     // XXX: this is linear currently. We could construct a lookup
