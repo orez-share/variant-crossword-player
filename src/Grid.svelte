@@ -203,6 +203,7 @@
 
   const handleDragClick = (evt) => {
     drag = {x: evt.x - scroll.x, y: evt.y - scroll.y};
+    return false;
   }
 
   const handleDragScroll = (evt) => {
@@ -211,6 +212,7 @@
       scroll.y = evt.y - drag.y;
       recenterScroll()
     }
+    return false;
   }
 
   const handleDragDrop = (evt) => {
@@ -219,6 +221,7 @@
     // TODO: quick animation could be fun polish
     scroll.x = Math.round(scroll.x / gridCellBorderPx) * gridCellBorderPx;
     scroll.y = Math.round(scroll.y / gridCellBorderPx) * gridCellBorderPx;
+    return false;
   }
 
   // this feels super jank but we'll seeee

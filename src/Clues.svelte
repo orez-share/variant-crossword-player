@@ -42,7 +42,9 @@
     width: 250px;
     padding: 10px;
     box-sizing: border-box;
-    height: 430px; /*TODO*/
+    height: 530px; /* TODO: css sucks */
+    display: flex;
+    flex-direction: column;
   }
 
   h3 {

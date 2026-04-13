@@ -107,6 +107,7 @@
     grid-template-areas: "clue across down ."
                          "grid across down .";
     grid-template-columns: auto auto auto 1fr;
+    grid-template-rows: auto 1fr;
     grid-gap: 10px;
   }
 
