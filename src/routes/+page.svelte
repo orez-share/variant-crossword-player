@@ -2,43 +2,13 @@
   import { onMount } from 'svelte';
   import Clues from '../Clues.svelte';
   import Grid from '../Grid.svelte';
-  import { clues, gridObj } from "../puz";
+  import { clues, gridObj } from '../puz';
+  import Cursor from '../cursor.svelte.js';
 
   let gridRef = $state();
 
-  let cursor = $state({ x: 0, y: 0, idx: 0, axis: "across" });
+  let cursor = $state(new Cursor(gridObj));
   let selectedClue = $derived(cursor.line && clues[cursor.axis].find(([num, _]) => cursor.line.number === num)?.[1]);
-
-  const setSelected = (coord) => {
-    let { x, y, idx } = gridObj.localCoord(coord);
-    if (gridObj.grid[idx].wall) return false;
-
-    cursor.x = x;
-    cursor.y = y;
-    cursor.idx = idx;
-    cursor.line = gridObj.lineAt(cursor);
-    return true;
-  }
-
-  const face = (axis) => {
-    cursor.axis = axis;
-    cursor.line = gridObj.lineAt(cursor);
-  }
-
-  const toggleFace = () => {
-    cursor.axis = cursor.axis === "across" ? "down" : "across";
-    cursor.line = gridObj.lineAt(cursor);
-  }
-
-  const prevWord = () => {
-    const [num, idx] = gridObj.prevWordFrom({ number: cursor.line.number, axis: cursor.axis });
-    setSelected({idx});
-  }
-
-  const nextWord = () => {
-    const [num, idx] = gridObj.nextWordFrom({ number: cursor.line.number, axis: cursor.axis });
-    setSelected({idx});
-  }
 
   // when you click a clue,
   // - it takes you to the next letter to solve in that clue
@@ -47,17 +17,9 @@
   const focusClue = (axis, number) => {
     const idx = gridObj.locationOfNum(number);
     cursor.axis = axis;
-    setSelected({idx});
+    cursor.setSelected({idx});
     // TODO: advance
     gridRef.focus();
-  };
-
-  const cursorMethods = {
-    setSelected,
-    face,
-    toggleFace,
-    prevWord,
-    nextWord,
   };
 
   onMount(() => {
@@ -79,7 +41,7 @@
     {/if}
   </div>
   <div style="grid-area: grid">
-    <Grid {gridObj} {cursor} {cursorMethods} bind:this={gridRef} />
+    <Grid {gridObj} {cursor} bind:this={gridRef} />
   </div>
   <div style="grid-area: across">
     <Clues

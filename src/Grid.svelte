@@ -1,15 +1,8 @@
 <script>
   import { leftOf, upOf, rightOf, downOf } from './directions';
 
-  let { gridObj, cursor, cursorMethods } = $props();
+  let { gridObj, cursor } = $props();
   export const focus = () => { gridRef.focus() };
-  const {
-    setSelected,
-    face,
-    toggleFace,
-    prevWord,
-    nextWord,
-  } = cursorMethods;
 
   const biffLimit = 1000;
   const cellFillLen = 1; // !?
@@ -44,22 +37,22 @@
     switch (evt.keyCode) {
       case 37: // <
         evt.preventDefault();
-        if (cursor.axis === "down" && !evt.shiftKey) face("across");
+        if (cursor.axis === "down" && !evt.shiftKey) cursor.axis = "across";
         else jump(leftOf);
         break;
       case 38: // ^
         evt.preventDefault();
-        if (cursor.axis === "across" && !evt.shiftKey) face("down");
+        if (cursor.axis === "across" && !evt.shiftKey) cursor.axis = "down";
         else jump(upOf);
         break;
       case 39: // >
         evt.preventDefault();
-        if (cursor.axis === "down" && !evt.shiftKey) face("across");
+        if (cursor.axis === "down" && !evt.shiftKey) cursor.axis = "across";
         else jump(rightOf);
         break;
       case 40: // v
         evt.preventDefault();
-        if (cursor.axis === "across" && !evt.shiftKey) face("down");
+        if (cursor.axis === "across" && !evt.shiftKey) cursor.axis = "down";
         else jump(downOf);
         break;
       case 8: // bksp
@@ -70,8 +63,8 @@
         let idx = cursor.idx;
         if (!grid[idx].fill.length) {
           if (!moveBack()) {
-            prevWord();
-            setSelected({idx: cursor.line.last});
+            cursor.prevWord();
+            cursor.setSelected({idx: cursor.line.last});
             break;
           }
           idx = cursor.idx;
@@ -82,15 +75,15 @@
       case 9: // tab
         evt.preventDefault();
         if (evt.shiftKey) {
-          prevWord();
+          cursor.prevWord();
           backToUnfilled();
         } else {
-          nextWord();
+          cursor.nextWord();
           aheadToUnfilled();
         }
         break;
       case 32: // space
-        toggleFace();
+        cursor.toggleFace();
         break;
       default:
         // if (evt.ctrlKey || evt.metaKey) {
@@ -131,7 +124,7 @@
     const start = cursor.idx;
     do {
       if (!cellFilled(cursor.idx)) return true;
-      if (!moveAhead()) setSelected({idx: first});
+      if (!moveAhead()) cursor.setSelected({idx: first});
     } while(start !== cursor.idx)
     return false;
   }
@@ -143,7 +136,7 @@
       // note that we still `moveAhead`: we walk forward within a word,
       // even as we walk backward in the grid.
       if (!moveAhead()) {
-        prevWord();
+        cursor.prevWord();
       }
       if (oops++ > biffLimit) throw new Error("you biffed it");
     }
@@ -154,7 +147,7 @@
     let oops = 0;
     while (cellFilled(cursor.idx)) {
       if (!moveAhead()) {
-        nextWord();
+        cursor.nextWord();
       }
       if (oops++ > biffLimit) throw new Error("you biffed it");
     }
@@ -172,15 +165,15 @@
       cell = gridObj.grid[pos.idx];
       if (oops++ > biffLimit) throw new Error("you biffed it");
     } while (cell.wall)
-    setSelected({idx: pos.idx});
+    cursor.setSelected({idx: pos.idx});
   }
 
   // Move the cursor one step in the given direction, unless this would move
   // the cursor into a wall. Returns `false` in this case, `true` otherwise.
-  const moveLeft = () => setSelected(leftOf(cursor));
-  const moveUp = () => setSelected(upOf(cursor));
-  const moveRight = () => setSelected(rightOf(cursor));
-  const moveDown = () => setSelected(downOf(cursor));
+  const moveLeft = () => cursor.setSelected(leftOf(cursor));
+  const moveUp = () => cursor.setSelected(upOf(cursor));
+  const moveRight = () => cursor.setSelected(rightOf(cursor));
+  const moveDown = () => cursor.setSelected(downOf(cursor));
 
   const moveAhead = () => cursor.axis === "across" ? moveRight() : moveDown();
   const moveBack = () => cursor.axis === "across" ? moveLeft() : moveUp();
@@ -293,10 +286,10 @@
           class:wall={cell.wall}
           onmousedown={evt => {
             if (evt.buttons === 0 || evt.buttons === 1) {
-              if (idx === cursor.idx) toggleFace();
+              if (idx === cursor.idx) cursor.toggleFace();
               // We're safe to send `idx` here, because it's guaranteed
               // to be in the local tessellation.
-              else setSelected({idx});
+              else cursor.setSelected({idx});
             }
           }}
         >
