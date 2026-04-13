@@ -6,7 +6,8 @@
 
   let gridRef;
 
-  let cursor = { x: 0, y: 0, idx: 0, num: 1, axis: "across" };
+  let cursor = { x: 0, y: 0, idx: 0, axis: "across" };
+  $: selectedClue = cursor.line && clues[cursor.axis].find(([num, _]) => cursor.line.number === num)?.[1];
 
   const setSelected = (coord) => {
     let { x, y, idx } = gridObj.localCoord(coord);
@@ -59,23 +60,50 @@
 </svelte:head>
 
 <div id="body-wrapper">
-  <Grid {gridObj} {cursor} {cursorMethods} bind:this={gridRef} />
-  <Clues
-    axis="across"
-    clues={clues.across}
-    selected={cursor.axis === "across" ? cursor.line?.number : null}
-    onClick={num => focusClue("across", num)} />
-  <Clues
-    axis="down"
-    clues={clues.down}
-    selected={cursor.axis === "down" ? cursor.line?.number : null}
-    onClick={num => focusClue("down", num)} />
+  <div style="grid-area: clue" class="selected-clue">
+    {#if cursor.line}
+      <strong>{cursor.line.number}{cursor.axis === "across"?"A":"D"}</strong>
+      {selectedClue}
+    {/if}
+  </div>
+  <div style="grid-area: grid">
+    <Grid {gridObj} {cursor} {cursorMethods} bind:this={gridRef} />
+  </div>
+  <div style="grid-area: across">
+    <Clues
+      axis="across"
+      clues={clues.across}
+      selected={cursor.axis === "across" ? cursor.line?.number : null}
+      onClick={num => focusClue("across", num)} />
+  </div>
+  <div style="grid-area: down">
+    <Clues
+      axis="down"
+      clues={clues.down}
+      selected={cursor.axis === "down" ? cursor.line?.number : null}
+      onClick={num => focusClue("down", num)} />
+  </div>
 </div>
 
 <style>
+  :global(body) {
+    font-family: Helvetica;
+  }
+
   #body-wrapper {
     display: grid;
-    grid-template-columns: auto 1fr 1fr;
+    grid-template-areas: "clue across down ."
+                         "grid across down .";
+    grid-template-columns: auto auto auto 1fr;
     grid-gap: 10px;
+  }
+
+  .selected-clue {
+    background-color: lightblue;
+    padding: 16px;
+  }
+
+  .selected-clue strong {
+    margin-right: 8px;
   }
 </style>
