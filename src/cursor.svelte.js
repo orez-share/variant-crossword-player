@@ -52,7 +52,7 @@ export default class Cursor {
     this.setSelected({idx});
   }
 
-  // Find the next open cell in the current word.
+  // Move to the next open cell in the current word.
   // Start at the current position: if you hit the end of the line,
   // go back to the front of the line and continue. If you hit your
   // starting position, return false.
@@ -66,7 +66,9 @@ export default class Cursor {
     return false;
   }
 
+  // Walk backward wordwise to the next unfilled cell
   backToUnfilled = () => {
+    // TODO: if (this.gridObj.isFull) return;
     // go to the next non-full cell in the word
     let oops = 0;
     while (this.#cellFilled()) {
@@ -79,7 +81,9 @@ export default class Cursor {
     }
   }
 
+  // Walk forward wordwise to the next unfilled cell
   aheadToUnfilled = () => {
+    // TODO: if (this.gridObj.isFull) return;
     // go to the next non-full cell in the word
     let oops = 0;
     while (this.#cellFilled()) {
@@ -103,7 +107,10 @@ export default class Cursor {
 
   // Apply `step` fn to the cursor position until you find a nonwall cell,
   // and move the cursor there. Used for the arrow keys.
-  jump = (step) => {
+  #jump = (step) => {
+    // XXX: this is weirdly one of the few methods that looks before it leaps.
+    // I kind of wish more of them were like this, but a lot of them rely on
+    // recalculating `line` ᖍ(∙⟞∙)ᖌ
     let oops = 0;
     let pos = this;
     let cell;
@@ -115,13 +122,18 @@ export default class Cursor {
     } while (cell.wall)
     this.setSelected({idx: pos.idx});
   }
+  jumpLeft = () => this.#jump(leftOf);
+  jumpUp = () => this.#jump(upOf);
+  jumpRight = () => this.#jump(rightOf);
+  jumpDown = () => this.#jump(downOf);
 
-  // Move the cursor one step in the given direction, unless this would move
+  // Move the cursor one cell in the given direction, unless this would move
   // the cursor into a wall. Returns `false` in this case, `true` otherwise.
-  moveLeft = () => this.setSelected(leftOf(this));
-  moveUp = () => this.setSelected(upOf(this));
-  moveRight = () => this.setSelected(rightOf(this));
-  moveDown = () => this.setSelected(downOf(this));
+  #move = (step) => this.setSelected(step(this));
+  moveLeft = () => this.#move(leftOf);
+  moveUp = () => this.#move(upOf);
+  moveRight = () => this.#move(rightOf);
+  moveDown = () => this.#move(downOf);
 
   moveAhead = () => this.axis === "across" ? this.moveRight() : this.moveDown();
   moveBack = () => this.axis === "across" ? this.moveLeft() : this.moveUp();

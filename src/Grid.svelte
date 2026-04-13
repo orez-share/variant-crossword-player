@@ -1,6 +1,4 @@
 <script>
-  import { leftOf, upOf, rightOf, downOf } from './directions';
-
   let { gridObj, cursor } = $props();
   export const focus = () => { gridRef.focus() };
 
@@ -36,22 +34,22 @@
       case 37: // <
         evt.preventDefault();
         if (cursor.axis === "down" && !evt.shiftKey) cursor.axis = "across";
-        else cursor.jump(leftOf);
+        else cursor.jumpLeft();
         break;
       case 38: // ^
         evt.preventDefault();
         if (cursor.axis === "across" && !evt.shiftKey) cursor.axis = "down";
-        else cursor.jump(upOf);
+        else cursor.jumpUp();
         break;
       case 39: // >
         evt.preventDefault();
         if (cursor.axis === "down" && !evt.shiftKey) cursor.axis = "across";
-        else cursor.jump(rightOf);
+        else cursor.jumpRight();
         break;
       case 40: // v
         evt.preventDefault();
         if (cursor.axis === "across" && !evt.shiftKey) cursor.axis = "down";
-        else cursor.jump(downOf);
+        else cursor.jumpDown();
         break;
       case 8: // bksp
         // this is a little complicated.
@@ -60,7 +58,7 @@
         //   - UNLESS moving back jumps a wall, in which case just chill
         let idx = cursor.idx;
         if (!grid[idx].fill.length) {
-          if (!moveBack()) {
+          if (!cursor.moveBack()) {
             cursor.prevWord();
             cursor.setSelected({idx: cursor.line.last});
             break;
@@ -72,6 +70,7 @@
         break;
       case 9: // tab
         evt.preventDefault();
+        // unconditionally step one word, then seek until you find an open cell
         if (evt.shiftKey) {
           cursor.prevWord();
           cursor.backToUnfilled();
@@ -105,7 +104,6 @@
           let fill = (gridObj.cellFilled(idx) ? "" : grid[idx].fill) + chr;
           performAction("Type character", [{idx, is: {fill}}]);
 
-          const start = 0;
           if (!cursor.nextOpenCellInWord()) cursor.aheadToUnfilled();
         }
     }
