@@ -282,18 +282,26 @@ export default class Grid {
     // &mut cells, &this
     const collect = (init, walk) => {
       let pos = init;
+      let last = init;
+      // TODO: if we want to support non-tessellated xwords
+      // we gotta (conditionally) count edges as walls as well.
+      // TODO: ..what the hell `number` does a fully-looping clue have?
+      //  How do we _tell_?
+      // Do we.. take ALL the numbers? Is this another fun gimmick??
       while (!this.grid[pos.idx].wall && !cells.has(pos.idx)) {
         cells.add(pos.idx);
+        last = pos;
         pos = walk(pos);
         pos = this.localCoord(pos);
       }
+      return this.grid[last.idx].number;
     }
 
-    collect(init, backward);
+    const number = collect(init, backward);
     cells.delete(init.idx);
     collect(init, forward);
 
-    return { cells }
+    return { cells, number }
   }
 
   // at(pos) {
@@ -327,6 +335,12 @@ export default class Grid {
       height: maxY - minY + 1,
       width: maxX - minX + 1,
     });
+  }
+
+  locationOfNum(num) {
+    // XXX: this is linear currently. We could construct a lookup
+    // on `renumber` (or, whatever) for a constant lookup if we need to.
+    return this.grid.findIndex(elem => num === elem.number);
   }
 
   // XXX: Honestly, the player probably shouldn't be numbering anything.

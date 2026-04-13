@@ -1,14 +1,17 @@
 <script>
-  import { onMount } from 'svelte';
   import { leftOf, upOf, rightOf, downOf } from './directions';
-  import Grid from "./grid";
+
+  export let gridObj;
+  export let cursor;
+  export let cursorMethods;
+  export const focus = () => { gridRef.focus() };
+  const {
+    setSelected,
+    face,
+    toggleFace,
+  } = cursorMethods;
 
   const cellFillLen = 1; // !?
-  const gridObj = new Grid({
-    width: 13,
-    height: 13,
-    tessellation: { x: 1, y: 1 },
-  });
   $: grid = gridObj.grid;
   // TODO: this probably isn't sufficient for Weird Grids.
   // consider some failsafes
@@ -27,19 +30,6 @@
   let drag = null;
   let scroll = {x: 0, y: 0};
 
-  // TODO
-  const hardcodedWalls = [
-    6, 7, 11, 17, 18, 25, 26, 30, 35, 40, 41, 42, 59,
-    63, 70, 77, 78, 82, 86, 90, 110, 114, 120, 124, 131,
-    132, 133, 134, 139, 145, 156, 162, 166
-  ];
-  for (const idx of hardcodedWalls) {
-    gridObj.grid[idx].wall = true;
-  }
-  gridObj.renumber();
-
-  let cursor = { x: 0, y: 0, idx: 0, axis: "across" };
-
   let gridRef;
 
   // XXX:
@@ -53,7 +43,6 @@
     switch (evt.keyCode) {
       case 37: // <
         evt.preventDefault();
-        // TODO: holding shift
         if (cursor.axis === "down" && !evt.shiftKey) face("across");
         else moveLeft();
         break;
@@ -152,16 +141,6 @@
     console.log("aight go to the next word");
   }
 
-  const face = (axis) => {
-    cursor.axis = axis;
-    cursor.line = gridObj.lineAt(cursor);
-  }
-
-  const toggleFace = () => {
-    cursor.axis = cursor.axis === "across" ? "down" : "across";
-    cursor.line = gridObj.lineAt(cursor);
-  }
-
   // ===
 
   const performAction = (action, updates) => {
@@ -174,17 +153,6 @@
     undos.push({action, updates});
     undos = undos;
     redos = [];
-  }
-
-  const setSelected = (coord) => {
-    let { x, y, idx } = gridObj.localCoord(coord);
-    if (grid[idx].wall) return false;
-
-    cursor.x = x;
-    cursor.y = y;
-    cursor.idx = idx;
-    cursor.line = gridObj.lineAt(cursor);
-    return true;
   }
 
   const handleDragClick = (evt) => {
@@ -242,11 +210,6 @@
       scroll.y -= h;
     }
   }
-  onMount(() => {
-    // TODO: Start at the first across
-    setSelected({idx: 0});
-    gridRef.focus();
-  })
 </script>
 
 <svelte:window
@@ -262,7 +225,11 @@
 >
   <div id="grid"
     tabindex="0"
-    style="grid-template-columns: repeat({renderWidth}, 1fr); left: {scroll.x}px; top: {scroll.y}px;"
+    style="
+      grid-template-columns: repeat({renderWidth}, 1fr);
+      left: {scroll.x}px;
+      top: {scroll.y}px;
+    "
     on:keydown={handleKey}
     on:contextmenu={evt => evt.preventDefault()}
     bind:this={gridRef}
