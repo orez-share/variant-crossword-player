@@ -177,37 +177,39 @@
 
   // this feels super jank but we'll seeee
   const recenterScroll = () => {
-    if (scroll.x > 0) {
-      const w = gridCellBorderPx * gridObj.width;
-      const h = gridCellBorderPx * -gridObj.tessellation.y;
-      drag.x += w;
-      drag.y += h;
-      scroll.x -= w;
-      scroll.y -= h;
-    }
-    if (scroll.y > 0) {
-      const w = gridCellBorderPx * -gridObj.tessellation.x
-      const h = gridCellBorderPx * gridObj.height;
-      drag.x += w;
-      drag.y += h;
-      scroll.x -= w;
-      scroll.y -= h;
-    }
-    if (scroll.x < (renderWidth - viewportWidth) * -gridCellBorderPx) {
-      const w = gridCellBorderPx * -gridObj.width;
-      const h = gridCellBorderPx * gridObj.tessellation.y;
-      drag.x += w;
-      drag.y += h;
-      scroll.x -= w;
-      scroll.y -= h;
-    }
-    if (scroll.y < (renderHeight - viewportHeight) * -gridCellBorderPx) {
-      const w = gridCellBorderPx * gridObj.tessellation.x
-      const h = gridCellBorderPx * -gridObj.height;
-      drag.x += w;
-      drag.y += h;
-      scroll.x -= w;
-      scroll.y -= h;
+    for (let i = 0; i < 3; i++) {
+      if (scroll.x > 0) {
+        const w = gridCellBorderPx * gridObj.width;
+        const h = gridCellBorderPx * -gridObj.tessellation.y;
+        drag.x += w;
+        drag.y += h;
+        scroll.x -= w;
+        scroll.y -= h;
+      }
+      if (scroll.y > 0) {
+        const w = gridCellBorderPx * -gridObj.tessellation.x
+        const h = gridCellBorderPx * gridObj.height;
+        drag.x += w;
+        drag.y += h;
+        scroll.x -= w;
+        scroll.y -= h;
+      }
+      if (scroll.x < (renderWidth - viewportWidth) * -gridCellBorderPx) {
+        const w = gridCellBorderPx * -gridObj.width;
+        const h = gridCellBorderPx * gridObj.tessellation.y;
+        drag.x += w;
+        drag.y += h;
+        scroll.x -= w;
+        scroll.y -= h;
+      }
+      if (scroll.y < (renderHeight - viewportHeight) * -gridCellBorderPx) {
+        const w = gridCellBorderPx * gridObj.tessellation.x
+        const h = gridCellBorderPx * -gridObj.height;
+        drag.x += w;
+        drag.y += h;
+        scroll.x -= w;
+        scroll.y -= h;
+      }
     }
   }
 </script>
