@@ -13,6 +13,7 @@
     nextWord,
   } = cursorMethods;
 
+  const biffLimit = 1000;
   const cellFillLen = 1; // !?
   $: grid = gridObj.grid;
   // TODO: this probably isn't sufficient for Weird Grids.
@@ -46,22 +47,22 @@
       case 37: // <
         evt.preventDefault();
         if (cursor.axis === "down" && !evt.shiftKey) face("across");
-        else moveLeft();
+        else jump(leftOf);
         break;
       case 38: // ^
         evt.preventDefault();
         if (cursor.axis === "across" && !evt.shiftKey) face("down");
-        else moveUp();
+        else jump(upOf);
         break;
       case 39: // >
         evt.preventDefault();
         if (cursor.axis === "down" && !evt.shiftKey) face("across");
-        else moveRight();
+        else jump(rightOf);
         break;
       case 40: // v
         evt.preventDefault();
         if (cursor.axis === "across" && !evt.shiftKey) face("down");
-        else moveDown();
+        else jump(downOf);
         break;
       case 8: // bksp
         // this is a little complicated.
@@ -141,13 +142,12 @@
     // go to the next non-full cell in the word
     let oops = 0;
     while (cellFilled(cursor.idx)) {
-      oops++;
       // note that we still `moveAhead`: we walk forward within a word,
       // even as we walk backward in the grid.
       if (!moveAhead()) {
         prevWord();
       }
-      if (oops > 1000) throw new Error("you biffed it");
+      if (oops++ > biffLimit) throw new Error("you biffed it");
     }
   }
 
@@ -155,14 +155,30 @@
     // go to the next non-full cell in the word
     let oops = 0;
     while (cellFilled(cursor.idx)) {
-      oops++;
       if (!moveAhead()) {
         nextWord();
       }
-      if (oops > 1000) throw new Error("you biffed it");
+      if (oops++ > biffLimit) throw new Error("you biffed it");
     }
   }
 
+  // Apply `step` fn to the cursor position until you find a nonwall cell,
+  // and move the cursor there. Used for the arrow keys.
+  const jump = (step) => {
+    let oops = 0;
+    let pos = cursor;
+    let cell;
+    do {
+      pos = step(pos);
+      pos = gridObj.localCoord(pos);
+      cell = gridObj.grid[pos.idx];
+      if (oops++ > biffLimit) throw new Error("you biffed it");
+    } while (cell.wall)
+    setSelected({idx: pos.idx});
+  }
+
+  // Move the cursor one step in the given direction, unless this would move
+  // the cursor into a wall. Returns `false` in this case, `true` otherwise.
   const moveLeft = () => setSelected(leftOf(cursor));
   const moveUp = () => setSelected(upOf(cursor));
   const moveRight = () => setSelected(rightOf(cursor));
