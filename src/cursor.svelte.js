@@ -23,9 +23,10 @@ export default class Cursor {
   // (unlike `idx`, which must). The coordinate pair will be translated
   // to the origin utah.
   setSelected = (coord) => {
-    const { gridObj } = this;
-    let { x, y, idx } = gridObj.localCoord(coord);
-    if (gridObj.grid[idx].wall) return false;
+    let { x, y, idx } = coord.idx == null ?
+      this.gridObj.localCoord(coord) :
+      this.gridObj.normalizeCoordFmt(coord);
+    if (this.gridObj.grid[idx].wall) return false;
 
     this.x = x;
     this.y = y;
@@ -130,11 +131,13 @@ export default class Cursor {
   // Move the cursor one cell in the given direction, unless this would move
   // the cursor into a wall. Returns `false` in this case, `true` otherwise.
   #move = (step) => this.setSelected(step(this));
-  moveLeft = () => this.#move(leftOf);
-  moveUp = () => this.#move(upOf);
-  moveRight = () => this.#move(rightOf);
-  moveDown = () => this.#move(downOf);
+  // These methods are private only because they don't currently need to be public.
+  // There's no issue with making them public if needed.
+  #moveLeft = () => this.#move(leftOf);
+  #moveUp = () => this.#move(upOf);
+  #moveRight = () => this.#move(rightOf);
+  #moveDown = () => this.#move(downOf);
 
-  moveAhead = () => this.axis === "across" ? this.moveRight() : this.moveDown();
-  moveBack = () => this.axis === "across" ? this.moveLeft() : this.moveUp();
+  moveAhead = () => this.axis === "across" ? this.#moveRight() : this.#moveDown();
+  moveBack = () => this.axis === "across" ? this.#moveLeft() : this.#moveUp();
 }

@@ -115,11 +115,16 @@ export default class Grid {
     return this.height - this.tessellation.y;
   }
 
-  // Passing `idx` ONLY for use with coordinates within the bounds of a local utah
-  // XXX: this is a weird precondition but I _am_ relying on it currently.
-  //   Consider how to restructure this to be less weird.
-  localCoord(global_) {
-    let { x, y } = this.normalizeCoordFmt(global_);
+  // Translate a global position `{x, y}` to a local position within the
+  // "origin utah". Returns `{x, y, idx}`: note that the concept of `idx`
+  // is only meaningful in local coordinates.
+  //
+  // Since our grid is tessellated, walking off the edge of the grid
+  // takes us to another point on the grid. Indeed: walking a whole lot
+  // will only ever take us to some point on the grid. This function
+  // can translate the displacement coordinates of such a long walk into
+  // local coordinates in constant time.
+  localCoord({x, y}) {
     const { gridLoop, step, dx, originRow } = this.#tessel;
     x = mod(x, gridLoop.x);
     y = mod(y, gridLoop.y);
@@ -151,11 +156,17 @@ export default class Grid {
     throw new Error("expected {x, y} xor {idx}");
   }
 
-  lineAt({x, y, axis}) {
+  // Collect information about the line referenced by the `Cursor`.
+  lineAt({idx, axis}) {
     const cells = new Set;
     const forward = axis === "across" ? rightOf : downOf;
     const backward = axis === "across" ? leftOf : upOf;
-    const init = this.localCoord({ x, y });
+    // XXX: If (if!) we trust that we're receiving a `Cursor`, we can skip
+    // this normalization and just trust `const init = { x, y, idx };`.
+    //
+    // I've spent too many brain cycles considering which is better, and
+    // it so so doesn't matter.
+    const init = this.normalizeCoordFmt({ idx });
 
     // &mut cells, &this
     const collect = (init, walk) => {
