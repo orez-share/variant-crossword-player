@@ -78,6 +78,17 @@
       case 32: // space
         cursor.toggleAxis();
         break;
+      case 219: // [
+        // cross-axis step
+        cursor.axis === "across" ?
+          cursor.jumpUp() :
+          cursor.jumpLeft();
+        break;
+      case 221: // ]
+        cursor.axis === "across" ?
+          cursor.jumpDown() :
+          cursor.jumpRight();
+        break;
       default:
         if (evt.ctrlKey || evt.altKey || evt.metaKey) return;
         if (evt.keyCode > 64 && evt.keyCode < 91) {
