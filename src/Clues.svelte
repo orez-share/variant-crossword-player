@@ -35,7 +35,7 @@
         onclick={() => onClick(num)}
         class:selected={num === selected}
       >
-        <strong>{num}</strong> {clue}
+        <strong>{num}</strong><span>{clue}</span>
       </li>
     {/each}
   </ul>
@@ -70,6 +70,7 @@
     padding: 5px;
     user-select: none;
     cursor: pointer;
+    display: flex;
   }
 
   li.selected {
