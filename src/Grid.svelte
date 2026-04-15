@@ -1,5 +1,5 @@
 <script>
-  let { gridObj, cursor } = $props();
+  let { gridObj, cursor, viewport } = $props();
   export const focus = () => { gridRef.focus() };
 
   let grid = $derived(gridObj.grid);
@@ -7,9 +7,6 @@
   // consider some failsafes
   const renderWidth = gridObj.width * 3;
   const renderHeight = gridObj.height * 3;
-
-  const viewportWidth = gridObj.width;
-  const viewportHeight = gridObj.height;
 
   const gridCellContentPx = 32;
   const gridCellBorderPx = gridCellContentPx + 1;
@@ -149,7 +146,7 @@
         scroll.x -= w;
         scroll.y -= h;
       }
-      if (scroll.x < (renderWidth - viewportWidth) * -gridCellBorderPx) {
+      if (scroll.x < (renderWidth - viewport.width) * -gridCellBorderPx) {
         const w = gridCellBorderPx * -gridObj.width;
         const h = gridCellBorderPx * gridObj.tessellation.y;
         drag.x += w;
@@ -157,7 +154,7 @@
         scroll.x -= w;
         scroll.y -= h;
       }
-      if (scroll.y < (renderHeight - viewportHeight) * -gridCellBorderPx) {
+      if (scroll.y < (renderHeight - viewport.height) * -gridCellBorderPx) {
         const w = gridCellBorderPx * gridObj.tessellation.x
         const h = gridCellBorderPx * -gridObj.height;
         drag.x += w;
@@ -176,8 +173,8 @@
   onmousedown={handleDragClick}
   onmousemove={handleDragScroll}
   style="
-    width: {gridCellBorderPx * viewportWidth + 1}px;
-    height: {gridCellBorderPx * viewportHeight + 1}px;
+    width: {gridCellBorderPx * viewport.width + 1}px;
+    height: {gridCellBorderPx * viewport.height + 1}px;
   "
 >
   <div id="grid"

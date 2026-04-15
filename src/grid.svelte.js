@@ -2,8 +2,6 @@
 import { gcd, mod } from './util';
 import { leftOf, upOf, rightOf, downOf } from './directions';
 
-const cellFillLen = 1; // !?
-
 // ===
 
 const tessellationOriginRow = ({aw, ah, b, c, lx}) => {
@@ -87,24 +85,18 @@ export default class Grid {
   #tessel;
   #cluePositions;
 
-  constructor({width, height, grid, tessellation}) {
+  constructor({width, height, grid, tessellation, lettersPerCell=1}) {
     console.assert(grid == null || grid.length === width * height, "wrong size grid");
     this.width = width;
     this.height = height;
-    grid ??= Array(width * height).fill(null)
-      .map(() => ({
-        wall: false,
-        fill: "",
-        number: null,
-      }));
+    this.lettersPerCell = lettersPerCell;
     this.grid = $state(grid);
-    this.#cluePositions = {across: [], down: []};
 
     if (tessellation) {
       this.tessellation = tessellation;
       this.#tessel = tessellationConstants({width, height, tessellation});
     }
-    this.renumber();
+    this.#cluePositions = this.calculateCluePositions();
   }
 
   get innerWidth() {
@@ -214,28 +206,18 @@ export default class Grid {
 
   locationOfNum(num) {
     // XXX: this is linear currently. We could construct a lookup
-    // on `renumber` (or, whatever) for a constant lookup if we need to.
+    // on `calculateCluePositions` (or, whatever) for a constant lookup
+    // if we need to.
     return this.grid.findIndex(elem => num === elem.number);
   }
 
-  // XXX: Honestly, the player probably shouldn't be numbering anything.
-  renumber() {
+  // XXX: This is still too opinionated: ideally we accept the `clues`
+  // as well, and use those to calculate the `#cluePositions` (and then
+  // discard the `clues`).
+  calculateCluePositions() {
     const { grid, width, height } = this;
     const across = [];
     const down = [];
-
-    let num = 1;
-    const setNum = ({idx, topBounded, leftBounded}) => {
-      const cell = grid[idx];
-      cell.number = null;
-      if (cell.wall) return;
-      if (leftBounded) across.push([num, idx]);
-      if (topBounded) down.push([num, idx]);
-      if (topBounded || leftBounded) {
-        cell.number = num;
-        num++;
-      }
-    };
 
     const isWall = (x, y) => {
       const {idx} = this.localCoord({x, y});
@@ -248,11 +230,16 @@ export default class Grid {
         // one cell regions do NOT get clues.
         const topBounded = isWall(x, y-1) && !isWall(x, y+1);
         const leftBounded = isWall(x-1, y) && !isWall(x+1, y);
-        setNum({idx, topBounded, leftBounded});
+        const cell = grid[idx];
+        if (cell.wall) continue;
+        const num = cell.number;
+        if (!num) continue;
+        if (leftBounded) across.push([num, idx]);
+        if (topBounded) down.push([num, idx]);
       }
     }
-    this.#cluePositions = {across, down};
+    return {across, down};
   }
 
-  cellFilled = (idx) => this.grid[idx].fill.length >= cellFillLen;
+  cellFilled = (idx) => this.grid[idx].fill.length >= this.lettersPerCell;
 }
