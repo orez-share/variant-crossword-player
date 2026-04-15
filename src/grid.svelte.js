@@ -90,21 +90,20 @@ export default class Grid {
     this.width = width;
     this.height = height;
     this.lettersPerCell = lettersPerCell;
+
+    // blank out cells within the `tessellation` chunked-out area
+    for (let y = tessellation.y; y > 0; y--) {
+      for (let x = tessellation.x; x > 0; x--) {
+        const idx = (height - y) * width + (width - x);
+        grid[idx] = null;
+      }
+    }
     this.grid = $state(grid);
 
-    if (tessellation) {
-      this.tessellation = tessellation;
-      this.#tessel = tessellationConstants({width, height, tessellation});
-    }
+    this.tessellation = tessellation;
+    this.#tessel = tessellationConstants({width, height, tessellation});
+
     this.#cluePositions = this.calculateCluePositions();
-  }
-
-  get innerWidth() {
-    return this.width - this.tessellation.x;
-  }
-
-  get innerHeight() {
-    return this.height - this.tessellation.y;
   }
 
   // Translate a global position `{x, y}` to a local position within the
@@ -231,7 +230,7 @@ export default class Grid {
         const topBounded = isWall(x, y-1) && !isWall(x, y+1);
         const leftBounded = isWall(x-1, y) && !isWall(x+1, y);
         const cell = grid[idx];
-        if (cell.wall) continue;
+        if (!cell || cell.wall) continue;
         const num = cell.number;
         if (!num) continue;
         if (leftBounded) across.push([num, idx]);
