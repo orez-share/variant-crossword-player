@@ -51,6 +51,7 @@
         // - otherwise, move back a cell and delete the last chr
         //   - UNLESS moving back jumps a wall, in which case just chill
         let idx = cursor.idx;
+        if (gridObj.progress.solved) return;
         if (!grid[idx].fill.length) {
           if (!cursor.moveBack()) {
             cursor.prevWord();
@@ -92,11 +93,18 @@
           const chr = String.fromCharCode(evt.keyCode);
           const idx = cursor.idx;
           if (grid[idx].wall) return;
+          if (gridObj.progress.solved) return;
+
           // if there's not space, replace the fill
           // if there's space, add the letter
           grid[idx].fill = (gridObj.cellFilled(idx) ? "" : grid[idx].fill) + chr;
 
-          if (!cursor.nextOpenCellInWord()) cursor.aheadToUnfilled();
+          if (gridObj.progress.solved); // don't move
+          else if (gridObj.progress.filled) {
+            // step ahead one (regardless of fill)
+            if(!cursor.moveAhead()) cursor.nextWord();
+          }
+          else if (!cursor.nextOpenCellInWord()) cursor.aheadToUnfilled();
         }
     }
   };
@@ -195,6 +203,7 @@
         <div class="cell"
           class:selected-line={cursor.line && cursor.line.cells.has(idx)}
           class:selected={cursor.idx === idx}
+          class:solved={gridObj.progress.solved}
           class:wall={cell.wall}
           onmousedown={evt => {
             if (evt.buttons === 0 || evt.buttons === 1) {
@@ -253,6 +262,10 @@
 
   .selected.selected-line {
     background-color: #cc6;
+  }
+
+  .selected-line.solved:not(.selected) {
+    background-color: #9e9;
   }
 
   .selected-line.wall {

@@ -58,6 +58,11 @@ export default class Cursor {
   // go back to the front of the line and continue. If you hit your
   // starting position, return false.
   nextOpenCellInWord = () => {
+    // XXX: this function is very look-before-you-leap-able.
+    // I expect any performance gains we'd get here to be minor
+    // to the point of super not worth it (not having to
+    // recalculate `line` n times, + any downstream `$derived`s).
+    // Calling it out as a possibility anyway.
     const first = this.line.first;
     const start = this.idx;
     do {
@@ -69,7 +74,7 @@ export default class Cursor {
 
   // Walk backward wordwise to the next unfilled cell
   backToUnfilled = () => {
-    // TODO: if (this.gridObj.isFull) return;
+    if (this.gridObj.progress.filled) return;
     // go to the next non-full cell in the word
     let oops = 0;
     while (this.#cellFilled()) {
@@ -84,7 +89,7 @@ export default class Cursor {
 
   // Walk forward wordwise to the next unfilled cell
   aheadToUnfilled = () => {
-    // TODO: if (this.gridObj.isFull) return;
+    if (this.gridObj.progress.filled) return;
     // go to the next non-full cell in the word
     let oops = 0;
     while (this.#cellFilled()) {

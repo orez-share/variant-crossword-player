@@ -85,7 +85,7 @@ export default class Grid {
   #tessel;
   #cluePositions;
 
-  constructor({width, height, grid, tessellation, lettersPerCell=1}) {
+  constructor({width, height, grid, solution, tessellation, lettersPerCell=1}) {
     console.assert(grid == null || grid.length === width * height, "wrong size grid");
     this.width = width;
     this.height = height;
@@ -96,15 +96,35 @@ export default class Grid {
       for (let x = tessellation.x; x > 0; x--) {
         const idx = (height - y) * width + (width - x);
         grid[idx] = null;
+        solution[idx] = null;
       }
     }
     this.grid = $state(grid);
+    this.solution = solution;
 
     this.tessellation = tessellation;
     this.#tessel = tessellationConstants({width, height, tessellation});
 
     this.#cluePositions = this.calculateCluePositions();
   }
+
+  // XXX: we could be trickier with this: careful tracking of how many
+  // cells are filled/solved, then maintaining those values when we
+  // update a cell, for O(1) calculation of these values.
+  // That sounds terrible and brittle though. O(n) should be fine,
+  // esp with svelte's caching.
+  progress = $derived.by(() => {
+    let filled = true;
+    let solved = true;
+    const top = this.width * this.height;
+    for (let idx = 0; idx < top; idx++) {
+      const cell = this.grid[idx];
+      if (!cell || cell.wall) continue;
+      if (!this.cellFilled(idx)) filled = false;
+      if (cell.fill !== this.solution[idx]) solved = false;
+    }
+    return {filled, solved};
+  });
 
   // Translate a global position `{x, y}` to a local position within the
   // "origin utah". Returns `{x, y, idx}`: note that the concept of `idx`
