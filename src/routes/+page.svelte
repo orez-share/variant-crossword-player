@@ -4,11 +4,25 @@
   import { loadPuz } from '../loadPuz.js';
 
   let puzzle = $state();
+  let error = $state();
 
-  onMount(async () => {
-    const response = await fetch("./Tessel1-prototype.ipuz");
+  const loadPuzFromHashRoute = async () => {
+    const filename = window.location.hash.replace(/^#\//, "");
+    if (/[^\w-]/.test(filename)) {
+      error = "Invalid filename";
+      return;
+    }
+    const response = await fetch(`./${filename}.ipuz`);
+    if (!response.ok) {
+      error = `Error loading puzzle ${filename} (${response.statusText})`;
+      return;
+    }
     const ipuz = await response.json();
     puzzle = loadPuz(ipuz);
+  }
+
+  onMount(async () => {
+    await loadPuzFromHashRoute();
   })
 </script>
 
@@ -17,6 +31,7 @@
 </svelte:head>
 
 <div id="body-wrapper">
+  {#if error }{ error }{/if}
   {#if puzzle }<Crossword {...puzzle} />{/if}
 </div>
 
