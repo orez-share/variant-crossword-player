@@ -22,15 +22,17 @@ export const loadPuz = (ipuz) => {
     empty,
     puzzle, // LabeledCell[][]
     solution, // CrosswordValue[][]
-    clues,
+    clues: rawClues,
     ...rest
   } = ipuz;
+
+  const clues = parseClues(rawClues);
 
   return {
     meta: { title, copyright, author, notes },
     viewport,
-    gridObj: parseGrid({dimensions, puzzle, solution, block, empty, tessellation}),
-    clues: parseClues(clues),
+    gridObj: parseGrid({dimensions, puzzle, solution, block, empty, tessellation, clues}),
+    clues,
   };
 }
 
@@ -58,7 +60,7 @@ const parseCrosswordValue = (cval, block, empty) => {
   return value;
 }
 
-const parseGrid = ({dimensions, puzzle, solution, block, empty, tessellation}) => {
+const parseGrid = ({dimensions, puzzle, solution, block, empty, tessellation, clues}) => {
   // TODO: DEF validate `puzzle`/`solution` dimensions _somewhere_
   const {width, height} = dimensions;
   const grid = [];
@@ -69,7 +71,7 @@ const parseGrid = ({dimensions, puzzle, solution, block, empty, tessellation}) =
       soln.push(parseCrosswordValue(solution[y][x], block, empty));
     }
   }
-  return new Grid({ width, height, grid, solution: soln, tessellation });
+  return new Grid({ width, height, grid, solution: soln, tessellation, clues });
 }
 
 const parseClues = (clues) => {

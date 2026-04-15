@@ -85,7 +85,7 @@ export default class Grid {
   #tessel;
   #cluePositions;
 
-  constructor({width, height, grid, solution, tessellation, lettersPerCell=1}) {
+  constructor({width, height, grid, solution, tessellation, clues, lettersPerCell=1}) {
     console.assert(grid == null || grid.length === width * height, "wrong size grid");
     this.width = width;
     this.height = height;
@@ -105,7 +105,9 @@ export default class Grid {
     this.tessellation = tessellation;
     this.#tessel = tessellationConstants({width, height, tessellation});
 
-    this.#cluePositions = this.calculateCluePositions();
+    // notably we do NOT save the clues themselves: we use them to
+    // populate the positions, and then discard them.
+    this.#cluePositions = this.calculateCluePositions(clues);
   }
 
   // XXX: we could be trickier with this: careful tracking of how many
@@ -207,57 +209,64 @@ export default class Grid {
 
   prevWordFrom({number, axis}) {
     const clues = this.#cluePositions[axis];
-    // XXX: could binary search
-    let clueIdx = clues.findIndex(([num, _]) => num === number);
-    if (clueIdx === -1) throw new Error(`missing ${number}`);
+    let clueIdx = this.#cluePositions.numPosition.get(number)?.[axis];
+    if (clueIdx == null) throw new Error(`missing ${number}`);
     clueIdx = mod(clueIdx - 1, clues.length);
     return clues[clueIdx];
   }
 
   nextWordFrom({number, axis}) {
     const clues = this.#cluePositions[axis];
-    // XXX: could binary search
-    let clueIdx = clues.findIndex(([num, _]) => num === number);
-    if (clueIdx === -1) throw new Error(`missing ${number}`);
+    let clueIdx = this.#cluePositions.numPosition.get(number)?.[axis];
+    if (clueIdx == null) throw new Error(`missing ${number}`);
     clueIdx = (clueIdx + 1) % clues.length;
     return clues[clueIdx];
   }
 
-  locationOfNum(num) {
-    // XXX: this is linear currently. We could construct a lookup
-    // on `calculateCluePositions` (or, whatever) for a constant lookup
-    // if we need to.
-    return this.grid.findIndex(elem => num === elem.number);
-  }
+  // Get the `idx` of the cell labeled `num`.
+  locationOfNum = (num) => this.#cluePositions.numPosition.get(num)?.idx;
 
-  // XXX: This is still too opinionated: ideally we accept the `clues`
-  // as well, and use those to calculate the `#cluePositions` (and then
-  // discard the `clues`).
-  calculateCluePositions() {
-    const { grid, width, height } = this;
+  calculateCluePositions(clues) {
+    const collectClueNums = (clues) => {
+      const nums = new Set;
+      for (const [num, _] of clues) {
+        if (nums.has(num)) {
+          console.warn(`clues contain duplicate number ${num}.`);
+          console.warn("This isn't supported, and will likely lead to unpredictable behavior!");
+          return;
+        }
+        nums.add(num);
+      }
+      return nums;
+    }
+    const acrossNums = collectClueNums(clues.across);
+    const downNums = collectClueNums(clues.down);
+
     const across = [];
     const down = [];
+    const numPosition = new Map;
 
-    const isWall = (x, y) => {
-      const {idx} = this.localCoord({x, y});
-      return grid[idx].wall;
-    };
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const idx = y * width + x;
-        // one cell regions do NOT get clues.
-        const topBounded = isWall(x, y-1) && !isWall(x, y+1);
-        const leftBounded = isWall(x-1, y) && !isWall(x+1, y);
-        const cell = grid[idx];
-        if (!cell || cell.wall) continue;
-        const num = cell.number;
-        if (!num) continue;
-        if (leftBounded) across.push([num, idx]);
-        if (topBounded) down.push([num, idx]);
+    for (const [idx, cell] of this.grid.entries()) {
+      if (!cell || cell.wall) continue;
+      const num = cell.number;
+      if (num == null) continue;
+      if (numPosition.has(num)) {
+        console.warn(`grid contains duplicate number ${num}.`);
+        console.warn("This isn't supported, and will likely lead to unpredictable behavior!");
       }
+      const position = { idx };
+      if (acrossNums.has(num)) {
+        position.across = across.length;
+        across.push([num, idx]);
+      }
+      if (downNums.has(num)) {
+        position.down = down.length;
+        down.push([num, idx]);
+      }
+      numPosition.set(num, position);
     }
-    return {across, down};
+
+    return {across, down, numPosition};
   }
 
   cellFilled = (idx) => this.grid[idx].fill.length >= this.lettersPerCell;
