@@ -15,7 +15,15 @@
     if (!doc) return;
     const el = doc.getElementById(`${axis}-${num}`);
     if (!el) return;
-    el.scrollIntoView({block: "center"});
+    // https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollIntoView
+    // `scrollIntoView` _almost_ does what we want, but it scrolls the entire
+    // viewport to put the element into view instead of just scrolling the clue
+    // container. There is a `container: nearest` option that would fix this,
+    // but Firefox doesn't support it yet, so we get to write it manually. Wheee.
+
+    // https://stackoverflow.com/a/11041376
+    // TODO: we could do more math to scroll to center.
+    el.parentNode.scrollTop = el.offsetTop;
   };
   run(() => {
     scrollToClue(selected);
@@ -64,6 +72,7 @@
     margin: 0;
     overflow-y: scroll;
     height: 100%;
+    position: relative;
   }
 
   li {
