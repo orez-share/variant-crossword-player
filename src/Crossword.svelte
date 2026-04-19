@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Clues from './Clues.svelte';
   import Grid from './Grid.svelte';
+  import Meta from './Meta.svelte';
   import Cursor from './cursor.svelte.js';
 
   let { meta, viewport, gridObj, clues } = $props();
@@ -26,7 +27,8 @@
   })
 </script>
 
-<div id="body-wrapper">
+<Meta {...meta} />
+<div class="crossword">
   <div style="grid-area: clue" class="selected-clue">
     {#if cursor.line}
       <strong>{cursor.line.number}{cursor.axis === "across"?"A":"D"}</strong>
@@ -53,7 +55,7 @@
 </div>
 
 <style>
-  #body-wrapper {
+  .crossword {
     display: grid;
     grid-template-areas: "clue across down ."
                          "grid across down .";
