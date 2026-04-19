@@ -12,7 +12,7 @@
       error = "Invalid filename";
       return;
     }
-    const response = await fetch(`./${filename}.ipuz`);
+    const response = await fetch(`../puz/${filename}.ipuz`);
     if (!response.ok) {
       error = `Error loading puzzle ${filename} (${response.statusText})`;
       return;

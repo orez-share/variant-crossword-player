@@ -2,7 +2,7 @@ import adapterAuto from '@sveltejs/adapter-auto';
 import adapterStatic from '@sveltejs/adapter-static';
 
 const isRelease = process.env.NODE_ENV === "production";
-const baseUrl = process.env.XWORD_BASE_URL;
+const baseUrl = process.env.XWORD_BASE_PATH;
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
