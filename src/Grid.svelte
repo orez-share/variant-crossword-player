@@ -1,6 +1,6 @@
 <script>
   let { gridObj, cursor, viewport } = $props();
-  export const focus = () => { gridRef.focus() };
+  export const focus = () => { inputRef.focus() };
 
   let grid = $derived(gridObj.grid);
   // TODO: this probably isn't sufficient for Weird Grids.
@@ -15,6 +15,7 @@
   let scroll = $state({x: 0, y: 0});
 
   let gridRef = $state();
+  let inputRef = $state();
 
   // XXX:
   // I guess Grid.svelte ought to handle a custom enum of semantic events,
@@ -24,6 +25,7 @@
   //
   // I don't want to do that right now though.
   const handleKey = evt => {
+    inputRef.value = "";
     switch (evt.keyCode) {
       case 37: // <
         evt.preventDefault();
@@ -192,7 +194,6 @@
       left: {scroll.x}px;
       top: {scroll.y}px;
     "
-    onkeydown={handleKey}
     oncontextmenu={evt => evt.preventDefault()}
     bind:this={gridRef}
   >
@@ -205,13 +206,15 @@
           class:selected={cursor.idx === idx}
           class:solved={gridObj.progress.solved}
           class:wall={cell.wall}
-          onmousedown={evt => {
+          tabindex="0"
+          onclick={evt => {
             if (evt.buttons === 0 || evt.buttons === 1) {
               if (idx === cursor.idx) cursor.toggleAxis();
               // We're safe to send `idx` here, because it's guaranteed
               // to be in the local tessellation.
               else cursor.setSelected({idx});
             }
+            inputRef.focus();
           }}
         >
           {#if cell.number}
@@ -222,6 +225,13 @@
       {/each}
     {/each}
   </div>
+  <input
+    onkeydown={handleKey}
+    bind:this={inputRef}
+    tabindex="-1"
+    autocomplete="off"
+    autocapitalize="none"
+  />
 </div>
 
 <style>
@@ -294,5 +304,22 @@
     bottom: 2px;
     margin-left: auto;
     margin-right: auto;
+  }
+
+  /*
+  As of 2026 (2026!!!), the only cross-browser way to open the
+  virtual keyboard on mobile is to `focus` an `input`, `textarea`, or
+  `contenteditable`. We DO NOT want these tags/attr (because we want
+  control over handling the keyboard input and displaying the information),
+  so instead we create an invisible and tiny `input` at the bottom of the
+  screen to manage inputs. It can't just be an `input` we don't display:
+  in that case it wouldn't receive events.
+
+  2026!!! Are you kidding me?? Mobile web dev is toilets.
+  */
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
   }
 </style>
