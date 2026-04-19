@@ -16,22 +16,33 @@ export const loadPuz = (ipuz) => {
     author,
     notes,
     dimensions,
-    viewport=dimensions,
-    tessellation,
+    viewport=dimensions, // tessellation
+    tessellation, // tessellation
     block,
     empty,
     puzzle, // LabeledCell[][]
     solution, // CrosswordValue[][]
     clues: rawClues,
+    lettersPerCell, // peapod
     ...rest
   } = ipuz;
 
   const clues = parseClues(rawClues);
+  const gridObj = parseGrid({
+    dimensions,
+    puzzle,
+    solution,
+    block,
+    empty,
+    tessellation,
+    clues,
+    lettersPerCell,
+  });
 
   return {
     meta: { title, copyright, author, notes },
     viewport,
-    gridObj: parseGrid({dimensions, puzzle, solution, block, empty, tessellation, clues}),
+    gridObj,
     clues,
   };
 }
@@ -60,7 +71,7 @@ const parseCrosswordValue = (cval, block, empty) => {
   return value;
 }
 
-const parseGrid = ({dimensions, puzzle, solution, block, empty, tessellation, clues}) => {
+const parseGrid = ({dimensions, puzzle, solution, block, empty, tessellation, clues, lettersPerCell}) => {
   // TODO: DEF validate `puzzle`/`solution` dimensions _somewhere_
   const {width, height} = dimensions;
   const grid = [];
@@ -71,7 +82,7 @@ const parseGrid = ({dimensions, puzzle, solution, block, empty, tessellation, cl
       soln.push(parseCrosswordValue(solution[y][x], block, empty));
     }
   }
-  return new Grid({ width, height, grid, solution: soln, tessellation, clues });
+  return new Grid({ width, height, grid, solution: soln, tessellation, clues, lettersPerCell });
 }
 
 const parseClues = (clues) => {
