@@ -2,6 +2,7 @@ import adapterAuto from '@sveltejs/adapter-auto';
 import adapterStatic from '@sveltejs/adapter-static';
 
 const isRelease = process.env.NODE_ENV === "production";
+const baseUrl = process.env.XWORD_BASE_URL;
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -13,7 +14,7 @@ const config = {
 			fallback: "index.html",
 		}) : adapterAuto(),
 		paths: {
-			base: isRelease ? '/peapod-setter' : '',
+			base: baseUrl,
 		},
 	}
 };
