@@ -22,6 +22,15 @@
     gridRef.focus();
   };
 
+  const clueProps = (axis) => {
+    return {
+      axis,
+      clues: clues[axis],
+      selected: cursor.axis === axis ? cursor.line?.number : null,
+      onClick: (num => focusClue(axis, num)),
+    }
+  }
+
   onMount(async () => {
     gridRef.focus();
   })
@@ -41,18 +50,10 @@
     <Grid {gridObj} {cursor} {viewport} bind:this={gridRef} />
   </div>
   <div style="grid-area: across">
-    <Clues
-      axis="across"
-      clues={clues.across}
-      selected={cursor.axis === "across" ? cursor.line?.number : null}
-      onClick={num => focusClue("across", num)} />
+    <Clues {...clueProps("across")} />
   </div>
   <div style="grid-area: down">
-    <Clues
-      axis="down"
-      clues={clues.down}
-      selected={cursor.axis === "down" ? cursor.line?.number : null}
-      onClick={num => focusClue("down", num)} />
+    <Clues {...clueProps("down")} />
   </div>
 </div>
 
