@@ -25,6 +25,47 @@ const tessellationOriginRow = ({aw, ah, b, c, lx}) => {
   return row;
 }
 
+// These constants work to find the smallest width after which the
+// tessellation loops.
+//   ie: starting from the top-left corner, how far in the `x` axis
+//   you have to move to hit another top-left corner.
+// - `txl` is the number of long segments in a loop-width
+// - `txs` is the number of short segments in a loop-width
+// - `dx` is used in a couple places, surprisingly.
+//   - In these constants, it's used to recognize when we loop earlier
+//     than expected (because we exactly fit multiple loops in a
+//     "single loop").
+//   - Weirdly, `dx` is also the number of identical consecutive rows.
+//     All of our rows are the same shape, modulo some offset. But
+//     eg: if `dx = 3`, then the first three rows are the _exact_ same,
+//     including the offset. The next three rows are also identical to
+//     each other, and so on.
+//     - This means when we search for the `step` goal, we need to look
+//       for the height we're actually gonna hit: `dx`
+//     - And also when we're actually applying the steps, we only want to
+//       perform a "step" every `dx` rows.
+// - `lx` is the loop-width itself. It's the number of long segments times
+//   their width, plus the number of short segments times their width.
+const loopConstants = ({mainMajor, mainMinor, offMajor, offMinor}) => {
+  const mainFull = mainMajor + mainMinor;
+  if (offMinor === 0) {
+    // When the off-axis has no variation then we're dealing with a
+    // full rectangular grid (not a utah). We're able to pack these
+    // rectangles into a more traditional grid shape. In some ways this
+    // simplifies our math, but it also means our utah math breaks down,
+    // so we need to special-case it.
+    // `lx` - We loop as quickly as possible: one trip across the rectangle
+    //        through the main axis.
+    // `dx` - _All_ of the lines in the rectangle are the exact same.
+    return [mainFull, offMajor];
+  }
+  const dx = gcd(offMajor, offMinor);
+  const txl = offMajor / dx;
+  const txs = offMinor / dx;
+  const lx = txl * mainFull + txs * mainMajor;
+  return [lx, dx];
+}
+
 const tessellationConstants = ({width, height, tessellation}) => {
   const {x, y} = tessellation;
   console.assert(0 <= x < width, `tessellation.x = ${x}`);
@@ -35,42 +76,25 @@ const tessellationConstants = ({width, height, tessellation}) => {
   const b = x;
   const c = y;
 
-  // These constants work to find the smallest width after which the
-  // tessellation loops.
-  //   ie: starting from the top-left corner, how far in the `x` axis
-  //   you have to move to hit another top-left corner.
-  // - `txl` is the number of long segments in a loop-width
-  // - `txs` is the number of short segments in a loop-width
-  // - `dx` is used in a couple places, surprisingly.
-  //   - In these constants, it's used to recognize when we loop earlier
-  //     than expected (because we exactly fit multiple loops in a
-  //     "single loop").
-  //   - Weirdly, `dx` is also the number of identical consecutive rows.
-  //     All of our rows are the same shape, modulo some offset. But
-  //     eg: if `dx = 3`, then the first three rows are the _exact_ same,
-  //     including the offset. The next three rows are also identical to
-  //     each other, and so on.
-  //     - This means when we search for the `step` goal, we need to look
-  //       for the height we're actually gonna hit: `dx`
-  //     - And also when we're actually applying the steps, we only want to
-  //       perform a "step" every `dx` rows.
-  // - `lx` is the loop-width itself. It's the number of long segments times
-  //   their width, plus the number of short segments times their width.
-  const dx = gcd(ah, c);
-  const txl = ah / dx;
-  const txs = c / dx;
-  const lx = txl * (aw + b) + txs * aw;
+  const [lx, dx] = loopConstants({
+    mainMajor: aw,
+    mainMinor: b,
+    offMajor: ah,
+    offMinor: c,
+  });
 
   // The process for finding the loop-height is the same, but with the
   // axis of all the variables swapped.
   // Unlike in the loop-width constants, we don't end up reusing `dy`.
-  const dy = gcd(aw, b);
-  const tyl = aw / dy;
-  const tys = b / dy;
-  const ly = tyl * (ah + c) + tys * ah;
+  const [ly, _] = loopConstants({
+    mainMajor: ah,
+    mainMinor: c,
+    offMajor: aw,
+    offMinor: b,
+  });
 
   const originRow = tessellationOriginRow({aw, ah, b, c, lx});
-  const step = originRow.findIndex(({y}) => y == dx);
+  const step = c == 0 ? b : originRow.findIndex(({y}) => y == dx);
   return {
     originRow,
     gridLoop: {x: lx, y: ly},
@@ -144,7 +168,8 @@ export default class Grid {
     // Every chunk of `dx` rows are identical to each other.
     // We only `step` when we reach a new offset of row.
     const idx = Math.floor(y / dx) * step + x;
-    const coord = originRow[mod(idx, gridLoop.x)];
+    const coord = {...originRow[mod(idx, gridLoop.x)]};
+    coord.y += mod(y, dx);
     return this.normalizeCoordFmt(coord);
   }
 
@@ -210,7 +235,7 @@ export default class Grid {
   prevWordFrom({number, axis}) {
     const clues = this.#cluePositions[axis];
     let clueIdx = this.#cluePositions.numPosition.get(number)?.[axis];
-    if (clueIdx == null) throw new Error(`missing ${number}`);
+    if (clueIdx == null) throw new Error(`missing #${number}`);
     clueIdx = mod(clueIdx - 1, clues.length);
     return clues[clueIdx];
   }
@@ -218,7 +243,7 @@ export default class Grid {
   nextWordFrom({number, axis}) {
     const clues = this.#cluePositions[axis];
     let clueIdx = this.#cluePositions.numPosition.get(number)?.[axis];
-    if (clueIdx == null) throw new Error(`missing ${number}`);
+    if (clueIdx == null) throw new Error(`missing #${number}`);
     clueIdx = (clueIdx + 1) % clues.length;
     return clues[clueIdx];
   }
