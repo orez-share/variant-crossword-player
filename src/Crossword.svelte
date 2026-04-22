@@ -30,10 +30,12 @@
 <Meta {...meta} />
 <div class="crossword">
   <div style="grid-area: clue" class="selected-clue">
-    {#if cursor.line}
-      <strong>{cursor.line.number}{cursor.axis === "across"?"A":"D"}</strong>
-      <span>{selectedClue}</span>
-    {/if}
+    <div class="clue-flex">
+      {#if cursor.line}
+        <strong>{cursor.line.number}{cursor.axis === "across"?"A":"D"}</strong>
+        <span>{selectedClue}</span>
+      {/if}
+    </div>
   </div>
   <div style="grid-area: grid">
     <Grid {gridObj} {cursor} {viewport} bind:this={gridRef} />
@@ -66,13 +68,23 @@
 
   .selected-clue {
     background-color: lightblue;
-    padding: 16px;
-    display: flex;
+    padding: 0 1em;
+    display: block;
     box-sizing: border-box;
+    height: 3.5em;
+    align-content: center;
+    overflow-y: scroll;
     /* Trick to prevent child from stretching parent
     https://stackoverflow.com/a/57599409 */
     width: 0;
     min-width: 100%;
+  }
+
+  /* `.selected-clue` needs to be `display: block` for `align-content: center`,
+  but we want a flexbox to keep the clue text from flowing over the number.
+  */
+  .clue-flex {
+    display: flex;
   }
 
   .selected-clue strong {
