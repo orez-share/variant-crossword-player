@@ -116,7 +116,6 @@
 
   const handleDragClick = (evt) => {
     drag = {x: evt.x - scroll.x, y: evt.y - scroll.y};
-    return false;
   }
 
   const handleDragScroll = (evt) => {
@@ -125,7 +124,6 @@
       scroll.y = evt.y - drag.y;
       recenterScroll()
     }
-    return false;
   }
 
   const handleDragDrop = (evt) => {
@@ -134,7 +132,6 @@
     // TODO: quick animation could be fun polish
     scroll.x = Math.round(scroll.x / gridCellBorderPx) * gridCellBorderPx;
     scroll.y = Math.round(scroll.y / gridCellBorderPx) * gridCellBorderPx;
-    return false;
   }
 
   // this feels super jank but we'll seeee
@@ -177,11 +174,11 @@
 </script>
 
 <svelte:window
-  onmouseup={handleDragDrop}
+  onpointerup={handleDragDrop}
 />
 <div id="grid-wrapper"
-  onmousedown={handleDragClick}
-  onmousemove={handleDragScroll}
+  onpointerdown={handleDragClick}
+  onpointermove={handleDragScroll}
   style="
     width: {gridCellBorderPx * viewport.width + 1}px;
     height: {gridCellBorderPx * viewport.height + 1}px;
@@ -236,6 +233,7 @@
 
 <style>
   #grid-wrapper {
+    touch-action: none;
     position: relative;
     overflow: hidden;
   }
