@@ -8,3 +8,5 @@ export const gcd = (a, b) => {
 }
 
 export const mod = (n, d) => ((n % d) + d) % d;
+
+export const otherAxis = (axis) => axis === "across" ? "down" : "across";

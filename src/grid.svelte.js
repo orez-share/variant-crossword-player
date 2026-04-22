@@ -1,5 +1,5 @@
 // Module for the `Grid` class
-import { gcd, mod } from './util';
+import { gcd, mod, otherAxis } from './util';
 import { leftOf, upOf, rightOf, downOf } from './directions';
 
 // ===
@@ -232,20 +232,35 @@ export default class Grid {
     return { cells, number, first, last }
   }
 
+  // Get the [number, idx, axis] of the "previous" clue from the given clue.
+  // The "previous" clue is the one numerically before the given clue,
+  // or the last clue on the opposite axis if we're at the first clue on
+  // our axis.
   prevWordFrom({number, axis}) {
     const clues = this.#cluePositions[axis];
     let clueIdx = this.#cluePositions.numPosition.get(number)?.[axis];
     if (clueIdx == null) throw new Error(`missing #${number}`);
-    clueIdx = mod(clueIdx - 1, clues.length);
-    return clues[clueIdx];
+    clueIdx -= 1;
+    if (clueIdx >= 0) return [...clues[clueIdx], axis];
+    const offxis = otherAxis(axis);
+    const offClues = this.#cluePositions[offxis];
+    const last = offClues.length - 1;
+    return [...offClues[last], offxis];
   }
 
+  // Get the [number, idx, axis] of the "next" clue from the given clue.
+  // The "next" clue is the one following numerically from the given clue,
+  // or the first clue on the opposite axis if we're at the last clue on
+  // our axis.
   nextWordFrom({number, axis}) {
     const clues = this.#cluePositions[axis];
     let clueIdx = this.#cluePositions.numPosition.get(number)?.[axis];
     if (clueIdx == null) throw new Error(`missing #${number}`);
-    clueIdx = (clueIdx + 1) % clues.length;
-    return clues[clueIdx];
+    clueIdx += 1;
+    if (clueIdx < clues.length) return [...clues[clueIdx], axis];
+    const offxis = otherAxis(axis);
+    const offClues = this.#cluePositions[offxis];
+    return [...offClues[0], offxis];
   }
 
   // Get the `idx` of the cell labeled `num`.

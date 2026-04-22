@@ -1,4 +1,5 @@
 import { leftOf, upOf, rightOf, downOf } from './directions';
+import { otherAxis } from './util';
 
 const biffLimit = 1000;
 
@@ -36,20 +37,22 @@ export default class Cursor {
 
   // Toggle the axis of this cursor.
   toggleAxis = () => {
-    this.axis = this.axis === "across" ? "down" : "across";
+    this.axis = otherAxis(this.axis);
   }
 
   // From the current word (eg 32A), move to the start of the previous word
   // (eg, 31A or perhaps 30A)
   prevWord = () => {
-    const [num, idx] = this.gridObj.prevWordFrom({ number: this.line.number, axis: this.axis });
+    const [num, idx, axis] = this.gridObj.prevWordFrom({ number: this.line.number, axis: this.axis });
+    this.axis = axis;
     this.setSelected({idx});
   }
 
   // From the current word (eg 32A), move to the start of the next word
   // (eg, 33A or perhaps 34A)
   nextWord = () => {
-    const [num, idx] = this.gridObj.nextWordFrom({ number: this.line.number, axis: this.axis });
+    const [num, idx, axis] = this.gridObj.nextWordFrom({ number: this.line.number, axis: this.axis });
+    this.axis = axis;
     this.setSelected({idx});
   }
 
