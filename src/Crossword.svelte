@@ -32,7 +32,7 @@
   <div style="grid-area: clue" class="selected-clue">
     {#if cursor.line}
       <strong>{cursor.line.number}{cursor.axis === "across"?"A":"D"}</strong>
-      {selectedClue}
+      <span>{selectedClue}</span>
     {/if}
   </div>
   <div style="grid-area: grid">
@@ -67,6 +67,12 @@
   .selected-clue {
     background-color: lightblue;
     padding: 16px;
+    display: flex;
+    box-sizing: border-box;
+    /* Trick to prevent child from stretching parent
+    https://stackoverflow.com/a/57599409 */
+    width: 0;
+    min-width: 100%;
   }
 
   .selected-clue strong {
