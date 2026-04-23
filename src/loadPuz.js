@@ -10,7 +10,7 @@ import LoopingGrid from "./loopingGrid.svelte.js";
 import vs from "./variants.js";
 
 export const loadPuz = (ipuz) => {
-  const {
+  let {
     version,
     kind,
     title,
@@ -30,6 +30,16 @@ export const loadPuz = (ipuz) => {
   } = ipuz;
 
   const variants = parseVariants(kind);
+  // Don't forward arguments unless we have the correct `kind`.
+  // Or more accurately: don't try to guess how to interpret arguments.
+  // Rely on the `kind` to decide how to interpret arguments, and otherwise
+  // silently discard unexpected arguments.
+  const peapodExtras = variants.includes(vs.PEAPOD) ? { lettersPerCell } : {};
+  const loopingExtras = variants.includes(vs.LOOPING) ? { viewport, tessellation } : {};
+  // our code expects a `viewport`, but we only use the one from
+  // the ipuz file if we've got the correct `kind`.
+  viewport = loopingExtras.viewport || dimensions;
+
   const clues = parseClues(rawClues);
   const gridObj = parseGrid({
     variants,
@@ -38,9 +48,9 @@ export const loadPuz = (ipuz) => {
     solution,
     block,
     empty,
-    tessellation,
     clues,
-    lettersPerCell,
+    ...peapodExtras,
+    ...loopingExtras,
   });
 
   return {
