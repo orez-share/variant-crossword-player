@@ -25,7 +25,7 @@ export const loadPuz = (ipuz) => {
     puzzle, // LabeledCell[][]
     solution, // CrosswordValue[][]
     clues: rawClues,
-    lettersPerCell, // peapod
+    lettersPerCell=2, // peapod
     ...rest
   } = ipuz;
 
