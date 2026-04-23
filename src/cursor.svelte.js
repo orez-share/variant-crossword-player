@@ -24,9 +24,11 @@ export default class Cursor {
   // (unlike `idx`, which must). The coordinate pair will be translated
   // to the origin utah.
   setSelected = (coord) => {
-    let { x, y, idx } = coord.idx == null ?
+    coord = coord.idx == null ?
       this.gridObj.localCoord(coord) :
       this.gridObj.normalizeCoordFmt(coord);
+    if (!coord) return false;
+    let { x, y, idx } = coord;
     if (this.gridObj.grid[idx].wall) return false;
 
     this.x = x;
@@ -126,6 +128,7 @@ export default class Cursor {
     do {
       pos = step(pos);
       pos = this.gridObj.localCoord(pos);
+      if (!pos) return false;
       cell = this.gridObj.grid[pos.idx];
       if (oops++ > biffLimit) throw new Error("you biffed it");
     } while (cell.wall)

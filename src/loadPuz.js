@@ -6,6 +6,8 @@
 // assume these are exhaustive!
 
 import Grid from "./grid.svelte.js";
+import LoopingGrid from "./loopingGrid.svelte.js";
+import vs from "./variants.js";
 
 export const loadPuz = (ipuz) => {
   const {
@@ -27,8 +29,10 @@ export const loadPuz = (ipuz) => {
     ...rest
   } = ipuz;
 
+  const variants = parseVariants(kind);
   const clues = parseClues(rawClues);
   const gridObj = parseGrid({
+    variants,
     dimensions,
     puzzle,
     solution,
@@ -40,6 +44,7 @@ export const loadPuz = (ipuz) => {
   });
 
   return {
+    variants,
     meta: { title, copyright, author, notes },
     viewport,
     gridObj,
@@ -71,7 +76,7 @@ const parseCrosswordValue = (cval, block, empty) => {
   return value;
 }
 
-const parseGrid = ({dimensions, puzzle, solution, block, empty, tessellation, clues, lettersPerCell}) => {
+const parseGrid = ({variants, dimensions, puzzle, solution, block, empty, tessellation, clues, lettersPerCell}) => {
   // TODO: DEF validate `puzzle`/`solution` dimensions _somewhere_
   const {width, height} = dimensions;
   const grid = [];
@@ -82,11 +87,31 @@ const parseGrid = ({dimensions, puzzle, solution, block, empty, tessellation, cl
       soln.push(parseCrosswordValue(solution[y][x], block, empty));
     }
   }
-  return new Grid({ width, height, grid, solution: soln, tessellation, clues, lettersPerCell });
+  const args = { width, height, grid, solution: soln, tessellation, clues, lettersPerCell }
+  return variants.includes(vs.LOOPING) ? new LoopingGrid(args) : new Grid(args);
 }
 
 const parseClues = (clues) => {
   // TODO: validation
   const { Across: across, Down: down } = clues;
   return { across, down };
+}
+
+const parseVariants = (kind) => {
+  const variants = [];
+  for (const k of kind) {
+    switch (k) {
+      case "http://ipuz.org/crossword#1":
+        break;
+      case "https://orez-share.github.io/peapods/format":
+        variants.push(vs.PEAPOD);
+        break;
+      case "https://orez-share.github.io/crosswords/looping/format":
+        variants.push(vs.LOOPING);
+        break;
+      default:
+        console.warn(`unrecognized ipuz kind '${k}'. Ignoring.`);
+    }
+  }
+  return variants;
 }

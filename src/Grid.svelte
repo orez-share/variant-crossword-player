@@ -1,12 +1,15 @@
 <script>
-  let { gridObj, cursor, viewport } = $props();
+  import vs from "./variants.js";
+
+  let { gridObj, cursor, viewport, variants } = $props();
   export const focus = () => { inputRef.focus() };
 
   let grid = $derived(gridObj.grid);
+  let isLooping = $derived(variants.includes(vs.LOOPING));
   // TODO: this probably isn't sufficient for Weird Grids.
   // consider some failsafes
-  const renderWidth = gridObj.width * 3;
-  const renderHeight = gridObj.height * 3;
+  const renderWidth = isLooping ? gridObj.width * 3 : gridObj.width;
+  const renderHeight = isLooping ? gridObj.height * 3 : gridObj.height;
 
   const gridCellContentPx = 32;
   const gridCellBorderPx = gridCellContentPx + 1;
@@ -119,6 +122,7 @@
   }
 
   const handleDragScroll = (evt) => {
+    if (!isLooping) return;
     if (drag) {
       scroll.x = evt.x - drag.x;
       scroll.y = evt.y - drag.y;

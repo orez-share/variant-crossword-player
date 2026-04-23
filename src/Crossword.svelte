@@ -5,7 +5,7 @@
   import Meta from './Meta.svelte';
   import Cursor from './cursor.svelte.js';
 
-  let { meta, viewport, gridObj, clues } = $props();
+  let { meta, viewport, gridObj, clues, variants } = $props();
 
   // TODO: I'm not sure this needs to be a $state?
   let gridRef = $state();
@@ -47,7 +47,7 @@
     </div>
   </div>
   <div style="grid-area: grid">
-    <Grid {gridObj} {cursor} {viewport} bind:this={gridRef} />
+    <Grid {gridObj} {cursor} {viewport} {variants} bind:this={gridRef} />
   </div>
   <div style="grid-area: across">
     <Clues {...clueProps("across")} />
