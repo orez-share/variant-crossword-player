@@ -158,6 +158,18 @@ export default class LoopingGrid {
   locationOfNum = (num) => this.#gridObj.locationOfNum(num);
   cellFilled = (idx) => this.#gridObj.cellFilled(idx);
 
+  // TODO: this fn is identical to the one in `grid.svelte.js`
+  // (sans one removed check/optimization we could add back). The only
+  // difference is the version of `localCoord` being called.
+  //
+  // I'm not sure a good way to DRY this.
+  // - I think js's prototype nonsense could do this but I do not trust it tbh.
+  // - Could factor the method out into a fn in a common module.
+  //   I'd want to put some thought into the Right Way to structure all
+  //   this junk in that case, but also this feels silly overkill.
+  //
+  // For now, what we've got works perfectly fine.
+
   // Collect information about the line referenced by the `Cursor`.
   lineAt({idx, axis}) {
     const cells = new Set;
@@ -174,8 +186,6 @@ export default class LoopingGrid {
     const collect = (init, walk) => {
       let pos = init;
       let last = init;
-      // TODO: if we want to support non-tessellated xwords
-      // we gotta (conditionally) count edges as walls as well.
       // TODO: ..what the hell `number` does a fully-looping clue have?
       //  How do we _tell_?
       // Do we.. take ALL the numbers? Is this another fun gimmick??
