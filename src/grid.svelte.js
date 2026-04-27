@@ -158,16 +158,29 @@ export default class Grid {
         console.warn(`grid contains duplicate number ${num}.`);
         console.warn("This isn't supported, and will likely lead to unpredictable behavior!");
       }
-      const position = { idx };
+      numPosition.set(num, { idx });
       if (acrossNums.has(num)) {
-        position.across = across.length;
         across.push([num, idx]);
       }
       if (downNums.has(num)) {
-        position.down = down.length;
         down.push([num, idx]);
       }
-      numPosition.set(num, position);
+    }
+
+    // Sort the clues we've collected.
+    // Theoretically they should already be sorted, but looping crosswords
+    // in particular can do some wacky stuff sometimes. When the two
+    // diverge, we prefer to iterate in clue order rather than
+    // grid-layout order.
+    const keyFn = (a, b) => a[0] - b[0];
+    across.sort(keyFn);
+    down.sort(keyFn);
+
+    for (const [pos, [num, _]] of across.entries()) {
+      numPosition.get(num).across = pos;
+    }
+    for (const [pos, [num, _]] of down.entries()) {
+      numPosition.get(num).down = pos;
     }
 
     return {across, down, numPosition};
