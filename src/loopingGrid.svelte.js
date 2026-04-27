@@ -104,6 +104,46 @@ const tessellationConstants = ({width, height, tessellation}) => {
   };
 }
 
+const validateGrids = ({width, height, grid, solution, tessellation}) => {
+  // validate the cells within the `tessellation` chunked-out area,
+  for (let y = tessellation.y; y > 0; y--) {
+    for (let x = tessellation.x; x > 0; x--) {
+      const match = {
+        y: tessellation.y - y,
+        x: tessellation.x - x,
+      };
+      const matchIdx = match.y * width + match.x;
+      const cell = {
+        y: height - y,
+        x: width - x,
+      };
+      const idx = cell.y * width + cell.x;
+      // ohhh javascript.
+      if (!["number", "fill", "wall"].every(key => grid[idx][key] === grid[matchIdx][key])) {
+        console.warn("expected grid cell", cell, "to match", match, ", but it did not\n  ", grid[idx], "≠", grid[matchIdx]);
+      }
+      if (solution[idx] !== solution[matchIdx]) {
+        console.warn("expected solution cell", cell, "to match", match, ", but it did not\n  ", solution[idx], "≠", solution[matchIdx]);
+      }
+    }
+  }
+}
+
+const sanitizeGrids = ({width, height, grid, solution, tessellation}) => {
+  // blank out the cells within the `tessellation` chunked-out area
+  for (let y = tessellation.y; y > 0; y--) {
+    for (let x = tessellation.x; x > 0; x--) {
+      const cell = {
+        y: height - y,
+        x: width - x,
+      };
+      const idx = cell.y * width + cell.x;
+      grid[idx] = null;
+      solution[idx] = null;
+    }
+  }
+}
+
 // ===
 
 export default class LoopingGrid {
@@ -115,14 +155,9 @@ export default class LoopingGrid {
     this.width = width;
     this.height = height;
 
-    // blank out cells within the `tessellation` chunked-out area
-    for (let y = tessellation.y; y > 0; y--) {
-      for (let x = tessellation.x; x > 0; x--) {
-        const idx = (height - y) * width + (width - x);
-        grid[idx] = null;
-        solution[idx] = null;
-      }
-    }
+    validateGrids({width, height, grid, solution, tessellation});
+    sanitizeGrids({width, height, grid, solution, tessellation});
+
     this.#gridObj = $state(new Grid({ width, height, grid, solution, clues, lettersPerCell }));
     this.grid = $derived(this.#gridObj.grid);
 
