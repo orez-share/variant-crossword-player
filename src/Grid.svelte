@@ -179,10 +179,10 @@
 
 <svelte:window
   onpointerup={handleDragDrop}
+  onpointermove={handleDragScroll}
 />
 <div id="grid-wrapper"
   onpointerdown={handleDragClick}
-  onpointermove={handleDragScroll}
   style="
     width: {gridCellBorderPx * viewport.width + 1}px;
     height: {gridCellBorderPx * viewport.height + 1}px;
